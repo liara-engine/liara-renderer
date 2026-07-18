@@ -1,0 +1,9 @@
+#pragma once
+
+#include <liara/version.h>
+
+#define LIARA_RENDERER_VERSION LIARA_MAKE_VERSION_UNSAFE( \
+    @PROJECT_VERSION_MAJOR@,                              \
+    @PROJECT_VERSION_MINOR@,                              \
+    @PROJECT_VERSION_PATCH@                               \
+)
