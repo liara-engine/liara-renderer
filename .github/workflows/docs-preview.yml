@@ -1,0 +1,41 @@
+name: docs-preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      docs: ${{ steps.f.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            docs:
+              - '.github/workflows/**'
+              - 'docs/**'
+              - 'book.toml'
+              - 'Doxyfile'
+              - 'include/**'
+              - 'manifest.json'
+              - 'README.md'
+
+  preview:
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+    needs: changes
+    if: >
+      needs.changes.outputs.docs == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'docs-preview')
+    uses: liara-engine/.github/.github/workflows/reusable-docs-preview.yml@v0
+    with:
+      image: ghcr.io/liara-engine/liara-documentation-builder:latest
+      output-repository: liara-engine/liara-docs
+    secrets:
+      ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+      push-token: ${{ secrets.DOCS_PUSH_TOKEN }}
