@@ -13,7 +13,7 @@ TEST_CASE("liara_renderer_abi_version") {
 }
 
 TEST_CASE("liara_renderer_create - success") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     const liara_result result = liara_renderer_create(&renderer);
 
     CHECK(result == LIARA_RESULT_SUCCESS);
@@ -28,7 +28,7 @@ TEST_CASE("liara_renderer_create - null pointer") {
 }
 
 TEST_CASE("liara_renderer_destroy - success") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     const liara_result result = liara_renderer_destroy(renderer);
@@ -41,7 +41,7 @@ TEST_CASE("liara_renderer_destroy - null pointer") {
 }
 
 TEST_CASE("liara_renderer_destroy - invalid state") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
     liara_renderer_destroy(renderer);
 
@@ -50,7 +50,7 @@ TEST_CASE("liara_renderer_destroy - invalid state") {
 }
 
 TEST_CASE("liara_renderer_print - success") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     const char* message = "Hello, World!";
@@ -68,7 +68,7 @@ TEST_CASE("liara_renderer_print - null renderer") {
 }
 
 TEST_CASE("liara_renderer_print - null message") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     const liara_result result = liara_renderer_print(renderer, nullptr, 5);
@@ -78,7 +78,7 @@ TEST_CASE("liara_renderer_print - null message") {
 }
 
 TEST_CASE("liara_renderer_print - zero length") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     const auto* const message = "test";
@@ -89,7 +89,7 @@ TEST_CASE("liara_renderer_print - zero length") {
 }
 
 TEST_CASE("liara_renderer_print - invalid state") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
     liara_renderer_destroy(renderer);
 
@@ -99,7 +99,7 @@ TEST_CASE("liara_renderer_print - invalid state") {
 }
 
 TEST_CASE("liara_renderer_set_text_color - basic") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     liara_renderer_set_text_color(renderer, 0xFF0000FF);
@@ -110,7 +110,7 @@ TEST_CASE("liara_renderer_set_text_color - basic") {
 TEST_CASE("liara_renderer_set_text_color - null renderer") { liara_renderer_set_text_color(nullptr, 0xFF0000FF); }
 
 TEST_CASE("liara_renderer_set_text_color - invalid state") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
     liara_renderer_destroy(renderer);
 
@@ -118,7 +118,7 @@ TEST_CASE("liara_renderer_set_text_color - invalid state") {
 }
 
 TEST_CASE("liara_renderer_set_text_color - various colors") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     SUBCASE("Red color") { liara_renderer_set_text_color(renderer, 0xFF0000FF); }
@@ -130,7 +130,7 @@ TEST_CASE("liara_renderer_set_text_color - various colors") {
 }
 
 TEST_CASE("liara_renderer_set_background_color - basic") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     liara_renderer_set_background_color(renderer, 0xFF000000);
@@ -143,7 +143,7 @@ TEST_CASE("liara_renderer_set_background_color - null renderer") {
 }
 
 TEST_CASE("liara_renderer_set_background_color - invalid state") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
     liara_renderer_destroy(renderer);
 
@@ -151,7 +151,7 @@ TEST_CASE("liara_renderer_set_background_color - invalid state") {
 }
 
 TEST_CASE("liara_renderer_set_background_color - various colors") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     SUBCASE("Black background") { liara_renderer_set_background_color(renderer, 0xFF000000); }
@@ -162,7 +162,7 @@ TEST_CASE("liara_renderer_set_background_color - various colors") {
 }
 
 TEST_CASE("liara_renderer - integration test") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     liara_renderer_set_text_color(renderer, 0xFF0000FF);
@@ -175,7 +175,7 @@ TEST_CASE("liara_renderer - integration test") {
 }
 
 TEST_CASE("liara_renderer - multiple colors integration") {
-    liara_renderer_t* renderer = nullptr;
+    liara_renderer_handle_t* renderer = nullptr;
     liara_renderer_create(&renderer);
 
     liara_renderer_set_text_color(renderer, 0xFFFF0000);

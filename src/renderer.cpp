@@ -1,12 +1,14 @@
-#include "liara/abi_version.h"
-
+#include <liara/abi_version.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
+#include <liara/version.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <string>
+
+#include <config.h>
 
 struct liara_renderer_t
 {
@@ -18,11 +20,17 @@ struct liara_renderer_t
 
 uint32_t liara_renderer_abi_version(void) { return LIARA_ABI_VERSION; }
 
+uint32_t liara_renderer_version() {
+    return LIARA_MAKE_VERSION_UNSAFE(LIARA_VERSION_MAJOR(LIARA_RENDERER_VERSION),
+                                     LIARA_VERSION_MINOR(LIARA_RENDERER_VERSION),
+                                     LIARA_VERSION_PATCH(LIARA_RENDERER_VERSION));
+}
+
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
-liara_result liara_renderer_create(liara_renderer_t** out_renderer) {
+liara_result liara_renderer_create(liara_renderer_handle_t** out_renderer) {
     if (out_renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
 
-    auto* renderer = new liara_renderer_t();
+    auto* renderer = new liara_renderer_handle_t();
     renderer->m_Valid = 1;                     // Mark the renderer as valid
     renderer->m_TextColor = 0xFFFFFFFF;        // Default text color: white
     renderer->m_BackgroundColor = 0xFF000000;  // Default background color: black
@@ -32,7 +40,7 @@ liara_result liara_renderer_create(liara_renderer_t** out_renderer) {
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
-liara_result liara_renderer_destroy(const liara_renderer_t* renderer) {
+liara_result liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
     if (renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
     renderer->m_Valid = 0;
@@ -40,7 +48,19 @@ liara_result liara_renderer_destroy(const liara_renderer_t* renderer) {
     return LIARA_RESULT_SUCCESS;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
-liara_result liara_renderer_print(const liara_renderer_t* renderer, const char* message, size_t message_length) {
+liara_result liara_renderer_print(const liara_renderer_handle_t* renderer, const char* message, size_t message_length) {
+    if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+    if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
+    if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
+    std::cout << renderer->m_AnsiCode;
+    std::cout << std::string(message, message_length);
+    std::cout << "\033[0m";  // Reset colors after printing
+    return LIARA_RESULT_SUCCESS;
+}
+
+liara_result liara_renderer_println(const liara_renderer_handle_t* renderer,
+                                    const char* message,
+                                    size_t message_length) {
     if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
     if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
@@ -50,7 +70,7 @@ liara_result liara_renderer_print(const liara_renderer_t* renderer, const char* 
     return LIARA_RESULT_SUCCESS;
 }
 
-void liara_renderer_set_text_color(const liara_renderer_t* renderer, const uint32_t color) {
+void liara_renderer_set_text_color(const liara_renderer_handle_t* renderer, const uint32_t color) {
     // Basic error handling since it's a temporary test method, that will be rapidly removed in the future.
     if (renderer == nullptr) { return; }
     if (renderer->m_Valid != 1) { return; }
@@ -63,7 +83,7 @@ void liara_renderer_set_text_color(const liara_renderer_t* renderer, const uint3
                            + std::to_string(renderer->m_BackgroundColor & 0xFF) + "m";
 }
 
-void liara_renderer_set_background_color(const liara_renderer_t* renderer, const uint32_t color) {
+void liara_renderer_set_background_color(const liara_renderer_handle_t* renderer, const uint32_t color) {
     // Basic error handling since it's a temporary test method, that will be rapidly removed in the future.
     if (renderer == nullptr) { return; }
     if (renderer->m_Valid != 1) { return; }
