@@ -1,0 +1,16 @@
+{
+  "name": "liara-renderer",
+  "version": "0.0.0",
+  "description": "A renderer for the Liara game engine.",
+  "homepage": "https://github.com/liara-engine/liara-renderer",
+  "license": "MIT",
+  "dependencies": [],
+  "features": {
+    "tests": {
+      "description": "Build the liara-renderer test suite.",
+      "dependencies": [
+        "doctest"
+      ]
+    }
+  }
+}

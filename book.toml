@@ -1,0 +1,29 @@
+[book]
+title = "Liara Engine — User Guide"
+authors = ["Liara Engine contributors"]
+language = "en"
+src = "docs"
+
+[output.html]
+hash-files = false
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/liara-engine/liara-renderer"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/liara-engine/liara-renderer/edit/main/docs/{path}"
+
+theme = "docs-shared/mdbook/theme"
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+expand = true
+heading-split-level = 2
