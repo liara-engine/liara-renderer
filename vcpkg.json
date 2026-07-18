@@ -1,6 +1,6 @@
 {
   "name": "liara-renderer",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A renderer for the Liara game engine.",
   "homepage": "https://github.com/liara-engine/liara-renderer",
   "license": "MIT",
