@@ -20,6 +20,7 @@ jobs:
               - 'book.toml'
               - 'Doxyfile'
               - 'include/**'
+              - 'src/**'
               - 'manifest.json'
               - 'README.md'
 
