@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.2](https://github.com/liara-engine/liara-renderer/compare/v0.0.1...v0.0.2) (2026-07-20)
+
+
+### Features
+
+* **renderer:** add liara_renderer_println and liara_renderer_version ([7e43ab1](https://github.com/liara-engine/liara-renderer/commit/7e43ab18631dae93a9c9e607b700807b83551cd4))
+
+
+### Bug Fixes
+
+* **cmake:** update error message for missing Liara::Interfaces to include documentation link ([be68042](https://github.com/liara-engine/liara-renderer/commit/be6804293ea492cbfae2e049aca3636a3e297a73))
+
 ## 0.0.1 (2026-07-18)
 
 
