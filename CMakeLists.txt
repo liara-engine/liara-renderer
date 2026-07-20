@@ -18,8 +18,8 @@ configure_file(
 
 if(NOT TARGET Liara::Interfaces)
     message(FATAL_ERROR
-            "Liara::Interfaces is not available. Build the renderer through the "
-            "workspace superbuild (see scripts/setup-workspace.sh).")
+            "Liara::Interfaces is not available. Build the renderer through the workspace superbuild "
+            " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/book/BOOTSTRAP)")
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)
