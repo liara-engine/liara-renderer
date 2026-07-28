@@ -41,17 +41,11 @@ if(LIARA_RENDERER_IS_TOP_LEVEL)
     set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
-file(GLOB_RECURSE LIARA_RENDERER_SOURCES
+file(GLOB_RECURSE LIARA_RENDERER_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.ipp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.tpp"
 )
 
-add_library(liara_renderer STATIC ${LIARA_RENDERER_SOURCES})
+add_library(liara_renderer ${LIARA_RENDERER_SOURCES})
 add_library(Liara::Renderer ALIAS liara_renderer)
 
 target_link_libraries(liara_renderer PRIVATE Liara::Interfaces)
@@ -62,6 +56,27 @@ target_include_directories(liara_renderer PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_BUILD)
+
+set_target_properties(liara_renderer PROPERTIES
+        C_VISIBILITY_PRESET hidden
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+        POSITION_INDEPENDENT_CODE ON
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        VERSION ${PROJECT_VERSION}
+)
+
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_SHARED)
+else()
+    target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_STATIC)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(liara_renderer PRIVATE -fvisibility=hidden -fvisibility-inlines-hidden)
+endif()
+
 if(LIARA_RENDERER_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
@@ -69,20 +84,6 @@ endif()
 
 if(LIARA_RENDERER_INSTALL)
     include(GNUInstallDirs)
-    include(CMakePackageConfigHelpers)
-
-    install(DIRECTORY include/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING
-            PATTERN "*.h"
-            PATTERN "config.h.in" EXCLUDE
-    )
-
-    install(
-            FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/config.h"
-            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara/renderer"
-    )
-
     install(TARGETS liara_renderer
             EXPORT LiaraRendererTargets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -90,28 +91,13 @@ if(LIARA_RENDERER_INSTALL)
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
             INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
-
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara"
+            FILES_MATCHING PATTERN "*.h"
+    )
     install(EXPORT LiaraRendererTargets
             FILE LiaraRendererTargets.cmake
             NAMESPACE Liara::
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
-    )
-
-    configure_package_config_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/LiaraRendererConfig.cmake.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfig.cmake"
-            INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
-    )
-
-    write_basic_package_version_file(
-            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfigVersion.cmake"
-            VERSION ${PROJECT_VERSION}
-            COMPATIBILITY AnyNewerVersion
-    )
-
-    install(FILES
-            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfig.cmake"
-            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfigVersion.cmake"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
     )
 endif()
