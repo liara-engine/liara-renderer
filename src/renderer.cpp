@@ -1,10 +1,16 @@
 #include <liara/abi_version.h>
-#include <liara/modules.h>
+
 #include <liara/renderer/LiaraRenderer.h>
-#include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 #include <liara/version.h>
+
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
+#include <liara/modules.h>
+#include <liara/renderer/packet.h>
+#else
+typedef liara_result liara_result_t;
+#endif
 
 #include <cstddef>
 #include <cstdint>
@@ -14,9 +20,12 @@
 struct liara_renderer_t
 {
     mutable uint8_t m_Valid = 0;
+    #if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
     LiaraRenderer m_Impl;
+    #endif
 };
 
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
     .struct_version = LIARA_MODULE_INFO_VERSION,
     .abi_version = LIARA_ABI_VERSION,
@@ -29,6 +38,9 @@ static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
 const liara_module_info_t* liara_renderer_info(void) { return &LIARA_RENDERER_MODULE_INFO; }
 
 uint32_t liara_renderer_abi_version(void) { return LIARA_RENDERER_MODULE_INFO.abi_version; }
+#else
+uint32_t liara_renderer_abi_version(void) { return LIARA_ABI_VERSION; }
+#endif
 
 uint32_t liara_renderer_version() {
     return LIARA_MAKE_VERSION_UNSAFE(LIARA_RENDERER_MAJOR_VERSION,
@@ -60,6 +72,7 @@ liara_result_t liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
     return LIARA_RESULT_SUCCESS;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
 // NOLINTBEGIN(readability-identifier-naming)
 liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, const liara_render_packet_t* packet) {
     // NOLINTEND(readability-identifier-naming)
@@ -67,6 +80,7 @@ liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, co
     if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
     return renderer->m_Impl.SubmitFrame(*packet);
 }
+#endif
 
 // TODO: Remove all the following functions when the renderer use ABI v0.2.0
 //       All these functions are deprecated and will be removed in the future.

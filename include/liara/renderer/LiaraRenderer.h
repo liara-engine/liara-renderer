@@ -1,5 +1,6 @@
 #pragma once
 
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
@@ -117,3 +118,4 @@ private:
     uint16_t m_Height = 0;
     std::vector<uint32_t> m_PreviousFrame;
 };
+#endif
