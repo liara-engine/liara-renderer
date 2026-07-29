@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 
+include(GNUInstallDirs)
+
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/.release-please-manifest.json" RELEASE_PLEASE_MANIFEST)
 string(JSON PROJECT_VERSION GET ${RELEASE_PLEASE_MANIFEST} ".")
 message(STATUS "LiaraRenderer version: ${PROJECT_VERSION}")
@@ -17,8 +19,13 @@ configure_file(
         @ONLY)
 
 if(NOT TARGET Liara::Interfaces)
+    find_package(LiaraInterfaces CONFIG QUIET)
+endif()
+
+if(NOT TARGET Liara::Interfaces)
     message(FATAL_ERROR
-            "Liara::Interfaces is not available. Build the renderer through the workspace superbuild "
+            "Liara::Interfaces is not available. Either build liara-renderer through the workspace superbuild, "
+            "or install liara-interfaces and point find_package(LiaraInterfaces) at it via CMAKE_PREFIX_PATH "
             " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/book/BOOTSTRAP)")
 endif()
 
@@ -48,7 +55,7 @@ file(GLOB_RECURSE LIARA_RENDERER_SOURCES CONFIGURE_DEPENDS
 add_library(liara_renderer ${LIARA_RENDERER_SOURCES})
 add_library(Liara::Renderer ALIAS liara_renderer)
 
-target_link_libraries(liara_renderer PRIVATE Liara::Interfaces)
+target_link_libraries(liara_renderer PUBLIC Liara::Interfaces)
 
 target_include_directories(liara_renderer PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
@@ -59,6 +66,7 @@ target_include_directories(liara_renderer PUBLIC
 target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_BUILD)
 
 set_target_properties(liara_renderer PROPERTIES
+        EXPORT_NAME Renderer
         C_VISIBILITY_PRESET hidden
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
@@ -83,13 +91,13 @@ if(LIARA_RENDERER_BUILD_TESTS)
 endif()
 
 if(LIARA_RENDERER_INSTALL)
-    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+
     install(TARGETS liara_renderer
             EXPORT LiaraRendererTargets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer"
             DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara"
@@ -98,6 +106,24 @@ if(LIARA_RENDERER_INSTALL)
     install(EXPORT LiaraRendererTargets
             FILE LiaraRendererTargets.cmake
             NAMESPACE Liara::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
+    )
+
+    write_basic_package_version_file(
+            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfigVersion.cmake"
+            VERSION ${PROJECT_VERSION}
+            COMPATIBILITY SameMajorVersion
+    )
+
+    configure_package_config_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/LiaraRendererConfig.cmake.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfig.cmake"
+            INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
+    )
+
+    install(FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfig.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfigVersion.cmake"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
     )
 endif()
