@@ -4,13 +4,8 @@
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 #include <liara/version.h>
-
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 #include <liara/modules.h>
 #include <liara/renderer/packet.h>
-#else
-typedef liara_result liara_result_t;
-#endif
 
 #include <cstddef>
 #include <cstdint>
@@ -20,12 +15,9 @@ typedef liara_result liara_result_t;
 struct liara_renderer_t
 {
     mutable uint8_t m_Valid = 0;
-    #if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
     LiaraRenderer m_Impl;
-    #endif
 };
 
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
     .struct_version = LIARA_MODULE_INFO_VERSION,
     .abi_version = LIARA_ABI_VERSION,
@@ -38,9 +30,6 @@ static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
 const liara_module_info_t* liara_renderer_info(void) { return &LIARA_RENDERER_MODULE_INFO; }
 
 uint32_t liara_renderer_abi_version(void) { return LIARA_RENDERER_MODULE_INFO.abi_version; }
-#else
-uint32_t liara_renderer_abi_version(void) { return LIARA_ABI_VERSION; }
-#endif
 
 uint32_t liara_renderer_version() {
     return LIARA_MAKE_VERSION_UNSAFE(LIARA_RENDERER_MAJOR_VERSION,
@@ -72,48 +61,10 @@ liara_result_t liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
     return LIARA_RESULT_SUCCESS;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 // NOLINTBEGIN(readability-identifier-naming)
 liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, const liara_render_packet_t* packet) {
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr || packet == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
     return renderer->m_Impl.SubmitFrame(*packet);
-}
-#endif
-
-// TODO: Remove all the following functions when the renderer use ABI v0.2.0
-//       All these functions are deprecated and will be removed in the future.
-//       For now, they are kept, but they are now no-ops.
-
-// NOLINTBEGIN(readability-identifier-naming)
-liara_result_t liara_renderer_print(const liara_renderer_handle_t* renderer,
-                                    const char* message,
-                                    size_t message_length) {
-    // NOLINTEND(readability-identifier-naming)
-    if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
-    if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
-    if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
-    return LIARA_RESULT_SUCCESS;
-}
-
-// NOLINTBEGIN(readability-identifier-naming)
-liara_result_t liara_renderer_println(const liara_renderer_handle_t* renderer,
-                                      const char* message,
-                                      size_t message_length) {
-    // NOLINTEND(readability-identifier-naming)
-    if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
-    if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
-    if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
-    return LIARA_RESULT_SUCCESS;
-}
-
-// NOLINTBEGIN(readability-identifier-naming)
-void liara_renderer_set_text_color(const liara_renderer_handle_t* /*renderer*/, const uint32_t /*color*/) {
-    // NOLINTEND(readability-identifier-naming)
-}
-
-// NOLINTBEGIN(readability-identifier-naming)
-void liara_renderer_set_background_color(const liara_renderer_handle_t* /*renderer*/, const uint32_t /*color*/) {
-    // NOLINTEND(readability-identifier-naming)
 }

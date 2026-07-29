@@ -7,6 +7,8 @@
 
 #include <doctest/doctest.h>
 
+#include "liara/renderer/packet.h"
+
 TEST_CASE("liara_renderer_abi_version") {
     const uint32_t version = liara_renderer_abi_version();
     CHECK(version > 0);
