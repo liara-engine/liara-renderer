@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.2](https://github.com/liara-engine/liara-renderer/compare/v0.0.1...v0.0.2) (2026-07-29)
+
+
+### Features
+
+* **renderer:** add compatibility with ABI v0.1.0 ([a8bc018](https://github.com/liara-engine/liara-renderer/commit/a8bc018d1b943d9e09800cc97b5a84aa19316336))
+* **renderer:** add liara_renderer_println and liara_renderer_version ([7e43ab1](https://github.com/liara-engine/liara-renderer/commit/7e43ab18631dae93a9c9e607b700807b83551cd4))
+* **renderer:** add LiaraRenderer class for frame rendering with console output ([403c3f0](https://github.com/liara-engine/liara-renderer/commit/403c3f06031161d3df695baa194deeca7f0db786))
+
+
+### Bug Fixes
+
+* add support for abi v0.1.1 ([#3](https://github.com/liara-engine/liara-renderer/issues/3)) ([f23cfab](https://github.com/liara-engine/liara-renderer/commit/f23cfab813e56aa86324e22f423b8c683ad3dcab))
+* **cmake:** update error message for missing Liara::Interfaces to include documentation link ([be68042](https://github.com/liara-engine/liara-renderer/commit/be6804293ea492cbfae2e049aca3636a3e297a73))
+* **renderer:** update return type for renderer functions to liara_result_t due to depreciation of liara_result ([b8d12bf](https://github.com/liara-engine/liara-renderer/commit/b8d12bf6d8c5cf2f18488aa8c0b7dfd0ce0f6479))
+
 ## 0.0.1 (2026-07-18)
 
 
