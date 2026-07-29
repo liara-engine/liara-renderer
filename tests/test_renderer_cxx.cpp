@@ -1,13 +1,13 @@
 // NOLINTBEGIN(readability-identifier-naming)
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "liara/renderer/packet.h"
+
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
 #include <cstdint>
 
 #include <doctest/doctest.h>
-
-#include "liara/renderer/packet.h"
 
 TEST_CASE("liara_renderer_abi_version") {
     const uint32_t version = liara_renderer_abi_version();

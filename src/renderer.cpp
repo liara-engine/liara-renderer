@@ -1,13 +1,10 @@
 #include <liara/abi_version.h>
-
+#include <liara/modules.h>
 #include <liara/renderer/LiaraRenderer.h>
+#include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
-#include <liara/version.h>
-#include <liara/modules.h>
-#include <liara/renderer/packet.h>
 
-#include <cstddef>
 #include <cstdint>
 
 #include <config.h>
@@ -15,7 +12,7 @@
 struct liara_renderer_t
 {
     mutable uint8_t m_Valid = 0;
-    LiaraRenderer m_Impl;
+    Liara::Renderer::LiaraRenderer m_Impl;
 };
 
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
@@ -30,12 +27,6 @@ static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
 const liara_module_info_t* liara_renderer_info(void) { return &LIARA_RENDERER_MODULE_INFO; }
 
 uint32_t liara_renderer_abi_version(void) { return LIARA_RENDERER_MODULE_INFO.abi_version; }
-
-uint32_t liara_renderer_version() {
-    return LIARA_MAKE_VERSION_UNSAFE(LIARA_RENDERER_MAJOR_VERSION,
-                                     LIARA_RENDERER_MINOR_VERSION,
-                                     LIARA_RENDERER_PATCH_VERSION);
-}
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
 // NOLINTBEGIN(readability-identifier-naming)
