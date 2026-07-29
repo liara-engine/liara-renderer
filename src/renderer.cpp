@@ -40,7 +40,7 @@ uint32_t liara_renderer_version() {
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result liara_renderer_create(liara_renderer_handle_t** out_renderer) {
+liara_result_t liara_renderer_create(liara_renderer_handle_t** out_renderer) {
     // NOLINTEND(readability-identifier-naming)
     if (out_renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
 
@@ -55,7 +55,7 @@ liara_result liara_renderer_create(liara_renderer_handle_t** out_renderer) {
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
+liara_result_t liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
@@ -65,7 +65,9 @@ liara_result liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result liara_renderer_print(const liara_renderer_handle_t* renderer, const char* message, size_t message_length) {
+liara_result_t liara_renderer_print(const liara_renderer_handle_t* renderer,
+                                    const char* message,
+                                    size_t message_length) {
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
@@ -77,9 +79,9 @@ liara_result liara_renderer_print(const liara_renderer_handle_t* renderer, const
 }
 
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result liara_renderer_println(const liara_renderer_handle_t* renderer,
-                                    const char* message,
-                                    size_t message_length) {
+liara_result_t liara_renderer_println(const liara_renderer_handle_t* renderer,
+                                      const char* message,
+                                      size_t message_length) {
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr || message == nullptr) { return LIARA_RESULT_NULL_POINTER; }
     if (message_length == 0) { return LIARA_RESULT_INVALID_ARGUMENT; }
@@ -91,7 +93,7 @@ liara_result liara_renderer_println(const liara_renderer_handle_t* renderer,
 }
 
 // NOLINTBEGIN(readability-identifier-naming)
-void liara_renderer_set_text_color(const liara_renderer_handle_t* renderer, const uint32_t color) {
+void liara_renderer_set_text_color(const liara_renderer_handle_t* /*renderer*/, const uint32_t /*color*/) {
     // NOLINTEND(readability-identifier-naming)
     // Basic error handling since it's a temporary test method, that will be rapidly removed in the future.
     if (renderer == nullptr) { return; }
@@ -106,7 +108,7 @@ void liara_renderer_set_text_color(const liara_renderer_handle_t* renderer, cons
 }
 
 // NOLINTBEGIN(readability-identifier-naming)
-void liara_renderer_set_background_color(const liara_renderer_handle_t* renderer, const uint32_t color) {
+void liara_renderer_set_background_color(const liara_renderer_handle_t* /*renderer*/, const uint32_t /*color*/) {
     // NOLINTEND(readability-identifier-naming)
     // Basic error handling since it's a temporary test method, that will be rapidly removed in the future.
     if (renderer == nullptr) { return; }
