@@ -5,7 +5,7 @@
 #include <liara/result.h>
 #include <liara/version.h>
 
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 #include <liara/modules.h>
 #include <liara/renderer/packet.h>
 #else
@@ -20,12 +20,12 @@ typedef liara_result liara_result_t;
 struct liara_renderer_t
 {
     mutable uint8_t m_Valid = 0;
-    #if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
+    #if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
     LiaraRenderer m_Impl;
     #endif
 };
 
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
     .struct_version = LIARA_MODULE_INFO_VERSION,
     .abi_version = LIARA_ABI_VERSION,
@@ -72,7 +72,7 @@ liara_result_t liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
     return LIARA_RESULT_SUCCESS;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
-#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && LIARA_ABI_VERSION_MINOR > 1)
+#if LIARA_ABI_VERSION_MAJOR > 0 || (LIARA_ABI_VERSION_MAJOR == 0 && (LIARA_ABI_VERSION_MINOR > 1 || LIARA_PRIVATE_CMAKE_VERSION_PATCH > 0))
 // NOLINTBEGIN(readability-identifier-naming)
 liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, const liara_render_packet_t* packet) {
     // NOLINTEND(readability-identifier-naming)
