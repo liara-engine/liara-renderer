@@ -76,9 +76,9 @@ set_target_properties(liara_renderer PROPERTIES
 )
 
 if(BUILD_SHARED_LIBS)
-    target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_SHARED)
+    target_compile_definitions(liara_renderer PUBLIC LIARA_RENDERER_SHARED)
 else()
-    target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_STATIC)
+    target_compile_definitions(liara_renderer PUBLIC LIARA_RENDERER_STATIC)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
