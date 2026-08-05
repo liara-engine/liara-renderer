@@ -15,7 +15,7 @@ project(LiaraRenderer
 
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer/config.h.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/generated/config.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/liara/renderer/config.h"
         @ONLY)
 
 if(NOT TARGET Liara::Interfaces)
@@ -95,18 +95,27 @@ if(LIARA_RENDERER_INSTALL)
 
     install(TARGETS liara_renderer
             EXPORT LiaraRendererTargets
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-runtime
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT liara-renderer-runtime
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-dev
     )
+
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer"
             DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara"
+            COMPONENT liara-renderer-dev
             FILES_MATCHING PATTERN "*.h"
     )
+
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/liara/renderer/config.h"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara/renderer"
+            COMPONENT liara-renderer-dev
+    )
+
     install(EXPORT LiaraRendererTargets
             FILE LiaraRendererTargets.cmake
             NAMESPACE Liara::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
+            COMPONENT liara-renderer-dev
     )
 
     write_basic_package_version_file(
@@ -125,5 +134,6 @@ if(LIARA_RENDERER_INSTALL)
             "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfig.cmake"
             "${CMAKE_CURRENT_BINARY_DIR}/LiaraRendererConfigVersion.cmake"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LiaraRenderer
+            COMPONENT liara-renderer-dev
     )
 endif()
