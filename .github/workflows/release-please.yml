@@ -24,8 +24,10 @@ jobs:
   artifact-release:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      contents: read
     uses: liara-engine/.github/.github/workflows/reusable-release-artifacts.yml@v1
-      with:
-        module: liara-renderer
-        version: ${{ needs.release-please.outputs.version }}
-        github-repo-version: v1
+    with:
+      module: liara-renderer
+      version: ${{ needs.release-please.outputs.version }}
+      github-repo-version: v1
