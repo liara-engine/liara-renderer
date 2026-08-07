@@ -5,6 +5,16 @@ on:
     branches: [main]
     tags:
       - 'v*.*.*'
+    paths:
+      - '.github/workflows/docs.yml'
+      - docs/**
+      - include/**
+      - book.toml
+      - CHANGELOG.md
+      - Doxyfile
+      - LICENSE
+      - manifest.json
+      - README.md
   workflow_dispatch:
 
 jobs:
