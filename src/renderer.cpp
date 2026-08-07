@@ -1,13 +1,12 @@
 #include <liara/abi_version.h>
 #include <liara/modules.h>
+#include <liara/renderer/config.h>
 #include <liara/renderer/LiaraRenderer.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
 #include <cstdint>
-
-#include <config.h>
 
 struct liara_renderer_t
 {
@@ -19,6 +18,7 @@ static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
     .struct_version = LIARA_MODULE_INFO_VERSION,
     .abi_version = LIARA_ABI_VERSION,
     .module_version = LIARA_RENDERER_VERSION,
+    .reserved = 0,
     .module_name = "Renderer",
     .abi_version_str = LIARA_ABI_VERSION_STR,
     .module_version_str = LIARA_RENDERER_VERSION_STRING,
