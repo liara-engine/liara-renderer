@@ -11,8 +11,23 @@ jobs:
       contents: write
       pull-requests: write
 
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
         with:
           token: ${{ secrets.ORG_RELEASE_PLEASE_TOKEN }}
+
+  artifact-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      contents: read
+    uses: liara-engine/.github/.github/workflows/reusable-release-artifacts.yml@v1
+    with:
+      module: liara-renderer
+      version: ${{ needs.release-please.outputs.version }}
+      github-repo-version: v1

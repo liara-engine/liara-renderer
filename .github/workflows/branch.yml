@@ -1,0 +1,38 @@
+name: branch
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/workflows/branch.yml'
+      - include/**
+      - src/**
+      - tests/**
+      - .clang-format
+      - .clang-tidy
+      - CMakeLists.txt
+      - manifest.json
+      - vcpkg.json
+      - vcpkg-configuration.json
+
+concurrency:
+  group: branch-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: liara-engine/.github/.github/workflows/reusable-module-build.yml@v1
+    with:
+      module: liarafile:/home/antoine/CLionProjects/liara/launcher/src/main.cpp-renderer
+      interfaces-ref: main # TODO: Find a better way
+      github-repo-version: v1
+
+  format:
+    uses: liara-engine/.github/.github/workflows/reusable-lint.yml@v1
+    with:
+      module: liara-renderer
+      run-tidy: false
+      github-repo-version: v1

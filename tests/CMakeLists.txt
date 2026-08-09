@@ -6,5 +6,6 @@ target_link_libraries(test_renderer_functions_cxx PRIVATE
         Liara::Renderer
         doctest::doctest)
 add_test(NAME test_renderer_functions_cxx COMMAND test_renderer_functions_cxx)
+set_tests_properties(test_renderer_functions_cxx PROPERTIES LABELS "unit")
 
 
