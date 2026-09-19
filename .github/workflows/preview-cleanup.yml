@@ -4,11 +4,12 @@ on:
     types: [closed]
 
 permissions:
-    contents: read
+  contents: read
+  packages: read
 
 jobs:
   cleanup:
-    uses: liara-engine/.github/.github/workflows/reusable-docs-preview-cleanup.yml@v0
+    uses: liara-engine/.github/.github/workflows/reusable-docs-preview-cleanup.yml@v2
     with:
       output-repository: liara-engine/liara-docs
     secrets:
