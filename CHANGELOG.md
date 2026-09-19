@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/liara-engine/liara-renderer/compare/v0.1.0...v0.1.1) (2026-09-19)
+
+
+### Features
+
+* enhance build configuration, documentation, and CI workflows ([#11](https://github.com/liara-engine/liara-renderer/issues/11)) ([86e5751](https://github.com/liara-engine/liara-renderer/commit/86e575158ffccc6cdb9ddd19dd56917a834b726c))
+
 ## [0.1.0](https://github.com/liara-engine/liara-renderer/compare/v0.0.2...v0.1.0) (2026-08-01)
 
 
