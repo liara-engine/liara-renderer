@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.0](https://github.com/liara-engine/liara-renderer/compare/v0.0.2...v0.1.0) (2026-08-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **renderer:** drop support of ABI v0.1.x
+
+### Features
+
+* **cmake:** enhance installation process with package configuration and versioning ([4e7b9a9](https://github.com/liara-engine/liara-renderer/commit/4e7b9a957801df277ec714bc26073491752de77e))
+* **renderer:** add initial configuration for LiaraRenderer ([049a213](https://github.com/liara-engine/liara-renderer/commit/049a2139d6a7b6f232172420e10ad256c43247fb))
+
+
+### Code Refactoring
+
+* **renderer:** drop support of ABI v0.1.x ([5fe7eca](https://github.com/liara-engine/liara-renderer/commit/5fe7eca8f0b2ce017d0620c4f07e1dbf9f1211bd))
+
 ## [0.0.2](https://github.com/liara-engine/liara-renderer/compare/v0.0.1...v0.0.2) (2026-07-29)
 
 
