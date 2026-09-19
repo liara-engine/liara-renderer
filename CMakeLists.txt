@@ -34,7 +34,7 @@ if(NOT TARGET Liara::Interfaces)
     message(FATAL_ERROR
             "Liara::Interfaces is not available. Either build liara-renderer through the workspace superbuild, "
             "or install liara-interfaces and point find_package(LiaraInterfaces) at it via CMAKE_PREFIX_PATH "
-            " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/book/BOOTSTRAP)")
+            " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/bootstrap)")
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)

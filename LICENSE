@@ -1,3 +1,10 @@
+---
+title: License
+description: The license under which the Liara Engine is distributed.
+sidebar:
+    order: 2
+---
+
 MIT License
 
 Copyright (c) 2026 liara-engine
