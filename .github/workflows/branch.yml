@@ -4,7 +4,7 @@ on:
   push:
     branches-ignore: [main]
     paths:
-      - '.github/workflows/branch.yml'
+      - .github/workflows/branch.yml
       - include/**
       - src/**
       - tests/**
@@ -24,15 +24,14 @@ permissions:
 
 jobs:
   build:
-    uses: liara-engine/.github/.github/workflows/reusable-module-build.yml@v1
+    uses: liara-engine/.github/.github/workflows/reusable-module-build.yml@v2
     with:
-      module: liarafile:/home/antoine/CLionProjects/liara/launcher/src/main.cpp-renderer
-      interfaces-ref: main # TODO: Find a better way
-      github-repo-version: v1
+      module: liara-renderer
+      github-repo-version: v2
 
   format:
-    uses: liara-engine/.github/.github/workflows/reusable-lint.yml@v1
+    uses: liara-engine/.github/.github/workflows/reusable-lint.yml@v2
     with:
       module: liara-renderer
       run-tidy: false
-      github-repo-version: v1
+      github-repo-version: v2
