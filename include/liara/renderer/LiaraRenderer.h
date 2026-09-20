@@ -47,8 +47,11 @@ namespace Liara::Renderer
                 const auto& [x, y, color] = packet.drawables[i];
                 const auto gridX = static_cast<int32_t>(x);
                 const auto gridY = static_cast<int32_t>(y);
+                // NOLINTBEGIN(modernize-use-integer-sign-comparison)
+                // False positive
                 if (gridX < 0 || gridY < 0 || gridX >= static_cast<int32_t>(m_Width)
                     || gridY >= static_cast<int32_t>(m_Height)) {
+                    // NOLINTEND(modernize-use-integer-sign-comparison)
                     continue;
                 }
                 frame.at((static_cast<size_t>(gridY) * m_Width) + static_cast<size_t>(gridX)) = color;
