@@ -7,6 +7,14 @@ sidebar:
 
 # Changelog
 
+## [0.1.2](https://github.com/liara-engine/liara-renderer/compare/v0.1.1...v0.1.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** remove main branch trigger since push to main is nom refused ([e560e18](https://github.com/liara-engine/liara-renderer/commit/e560e18802ffdd357c3b8e3e1540fa054902a29a))
+* **clang-tidy:** adjust header filter regex and update checks ([71cc578](https://github.com/liara-engine/liara-renderer/commit/71cc578aaf3b890ee939cee91747949bf89f902b))
+
 ## [0.1.1](https://github.com/liara-engine/liara-renderer/compare/v0.1.0...v0.1.1) (2026-09-19)
 
 
