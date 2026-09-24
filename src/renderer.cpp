@@ -10,7 +10,7 @@
 
 struct liara_renderer_t
 {
-    mutable uint8_t m_Valid = 0;
+    uint8_t m_Valid = 0;
     Liara::Renderer::LiaraRenderer m_Impl;
 };
 
@@ -43,13 +43,9 @@ liara_result_t liara_renderer_create(liara_renderer_handle_t** out_renderer) {
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result_t liara_renderer_destroy(const liara_renderer_handle_t* renderer) {
+void liara_renderer_destroy(liara_renderer_handle_t* renderer) {
     // NOLINTEND(readability-identifier-naming)
-    if (renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
-    if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
-    renderer->m_Valid = 0;
     delete renderer;
-    return LIARA_RESULT_SUCCESS;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
 // NOLINTBEGIN(readability-identifier-naming)
