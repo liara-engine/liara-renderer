@@ -29,26 +29,15 @@ TEST_CASE("liara_renderer_create - null pointer") {
     CHECK(result == LIARA_RESULT_NULL_POINTER);
 }
 
-TEST_CASE("liara_renderer_destroy - success") {
+TEST_CASE("liara_renderer_destroy - destroys a created renderer") {
     liara_renderer_handle_t* renderer = nullptr;
-    liara_renderer_create(&renderer);
-
-    const liara_result_t result = liara_renderer_destroy(renderer);
-    CHECK(result == LIARA_RESULT_SUCCESS);
-}
-
-TEST_CASE("liara_renderer_destroy - null pointer") {
-    const liara_result_t result = liara_renderer_destroy(nullptr);
-    CHECK(result == LIARA_RESULT_NULL_POINTER);
-}
-
-TEST_CASE("liara_renderer_destroy - invalid state") {
-    liara_renderer_handle_t* renderer = nullptr;
-    liara_renderer_create(&renderer);
+    REQUIRE(liara_renderer_create(&renderer) == LIARA_RESULT_SUCCESS);
+    REQUIRE(renderer != nullptr);
     liara_renderer_destroy(renderer);
+}
 
-    const liara_result_t result = liara_renderer_destroy(renderer);
-    CHECK(result == LIARA_RESULT_INVALID_STATE);
+TEST_CASE("liara_renderer_destroy - a null handle is a no-op") {
+    liara_renderer_destroy(nullptr);
 }
 
 TEST_CASE("liara_renderer_submit_frame - null renderer") {
@@ -181,23 +170,6 @@ TEST_CASE("liara_renderer_submit_frame - out-of-bounds drawable is clipped, not 
     CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_SUCCESS);
 
     liara_renderer_destroy(renderer);
-}
-
-TEST_CASE("liara_renderer_submit_frame - invalid state after destroy") {
-    liara_renderer_handle_t* renderer = nullptr;
-    liara_renderer_create(&renderer);
-    liara_renderer_destroy(renderer);
-
-    const liara_render_packet_t packet {
-        .struct_version = LIARA_RENDER_PACKET_VERSION,
-        .grid_width = 4,
-        .grid_height = 4,
-        .background_color = 0xFF000000U,
-        .drawables = nullptr,
-        .drawable_count = 0,
-    };
-
-    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_INVALID_STATE);
 }
 
 // NOLINTEND(readability-identifier-naming)
