@@ -7,6 +7,22 @@ sidebar:
 
 # Changelog
 
+## [0.2.0](https://github.com/liara-engine/liara-renderer/compare/v0.1.2...v0.2.0) (2026-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* liara_renderer_destroy returns void instead of liara_result_t and takes a non-const liara_renderer_handle_t*. A caller that checked the return value no longer compiles.
+
+### Bug Fixes
+
+* **ci:** update pull request triggers for CI workflow ([5b2733b](https://github.com/liara-engine/liara-renderer/commit/5b2733b66e156e0a94d1e5ef7dba3edf837c793c))
+
+
+### Code Refactoring
+
+* destroy returns void ([#17](https://github.com/liara-engine/liara-renderer/issues/17)) ([bc41f16](https://github.com/liara-engine/liara-renderer/commit/bc41f166d5ef6c3dd41d41e762bd72c25be812e0))
+
 ## [0.1.2](https://github.com/liara-engine/liara-renderer/compare/v0.1.1...v0.1.2) (2026-09-20)
 
 
