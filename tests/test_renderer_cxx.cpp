@@ -36,9 +36,7 @@ TEST_CASE("liara_renderer_destroy - destroys a created renderer") {
     liara_renderer_destroy(renderer);
 }
 
-TEST_CASE("liara_renderer_destroy - a null handle is a no-op") {
-    liara_renderer_destroy(nullptr);
-}
+TEST_CASE("liara_renderer_destroy - a null handle is a no-op") { liara_renderer_destroy(nullptr); }
 
 TEST_CASE("liara_renderer_submit_frame - null renderer") {
     const liara_render_drawable_t drawable {.x = 0.0F, .y = 0.0F, .color = 0xFFFFFFFFU};
