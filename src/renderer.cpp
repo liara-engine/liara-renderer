@@ -42,9 +42,9 @@ liara_result_t liara_renderer_create(liara_renderer_handle_t** out_renderer) {
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
-// NOLINTBEGIN(readability-identifier-naming)
+// NOLINTBEGIN(readability-identifier-naming, misc-const-correctness)
 void liara_renderer_destroy(liara_renderer_handle_t* renderer) {
-    // NOLINTEND(readability-identifier-naming)
+    // NOLINTEND(readability-identifier-naming, misc-const-correctness)
     delete renderer;
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
