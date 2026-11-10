@@ -19,3 +19,15 @@ target_link_libraries(test_renderer_console_cxx PRIVATE
         doctest::doctest)
 add_test(NAME test_renderer_console_cxx COMMAND test_renderer_console_cxx)
 set_tests_properties(test_renderer_console_cxx PROPERTIES LABELS "unit")
+
+# Creates renderer instances, hence a Vulkan device: `gpu`, which CI excludes. Any warning or error line the renderer
+# logs fails the test, validation messages included, even when every CHECK passed.
+add_executable(test_renderer_device_cxx test_renderer_device_cxx.cpp)
+target_link_libraries(test_renderer_device_cxx PRIVATE
+        Liara::Interfaces
+        Liara::Renderer
+        doctest::doctest)
+add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx)
+set_tests_properties(test_renderer_device_cxx PROPERTIES
+        LABELS "gpu"
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
