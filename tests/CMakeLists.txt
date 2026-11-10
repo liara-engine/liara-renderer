@@ -31,3 +31,17 @@ add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx)
 set_tests_properties(test_renderer_device_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
+# The device selection policy alone, without a GPU: the source is compiled into the test, which links no renderer, so
+# the same code is tested under every preset with no duplicate symbol and no export needed.
+find_package(VulkanHeaders CONFIG REQUIRED)
+add_executable(test_renderer_device_selection_cxx
+        test_renderer_device_selection_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/device/DeviceSelection.cpp)
+target_include_directories(test_renderer_device_selection_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src)
+target_compile_definitions(test_renderer_device_selection_cxx PRIVATE VK_NO_PROTOTYPES)
+target_link_libraries(test_renderer_device_selection_cxx PRIVATE
+        Vulkan::Headers
+        doctest::doctest)
+add_test(NAME test_renderer_device_selection_cxx COMMAND test_renderer_device_selection_cxx)
+set_tests_properties(test_renderer_device_selection_cxx PROPERTIES LABELS "unit")

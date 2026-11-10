@@ -37,6 +37,11 @@ if(NOT TARGET Liara::Interfaces)
             " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/bootstrap)")
 endif()
 
+# Header-only, both of them: Vulkan-Hpp comes with vulkan-headers, and the loader is opened at run time rather than
+# linked (VK_NO_PROTOTYPES below; ADR 0016).
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+
 if(PROJECT_IS_TOP_LEVEL)
     set(LIARA_RENDERER_IS_TOP_LEVEL ON)
 else()
@@ -66,6 +71,16 @@ add_library(Liara::Renderer ALIAS liara_renderer)
 liara_configure_target(liara_renderer)
 
 target_link_libraries(liara_renderer PUBLIC Liara::Interfaces)
+
+target_link_libraries(liara_renderer PRIVATE Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
+
+# No Vulkan C prototype is declared inside the module, so a direct call to one is a compile error instead of a link-time
+# dependency on the loader, which CI machines do not have. Every call goes through Vulkan-Hpp's dispatchers, and VMA
+# fetches its functions through the two GetProcAddr pointers it is given.
+target_compile_definitions(liara_renderer PRIVATE
+        VK_NO_PROTOTYPES
+        VMA_STATIC_VULKAN_FUNCTIONS=0
+        VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 target_include_directories(liara_renderer PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
