@@ -72,6 +72,7 @@ target_include_directories(liara_renderer PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_include_directories(liara_renderer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_BUILD)
 
@@ -100,12 +101,6 @@ if(LIARA_RENDERER_INSTALL)
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-runtime
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT liara-renderer-runtime
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-dev
-    )
-
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer"
-            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara"
-            COMPONENT liara-renderer-dev
-            FILES_MATCHING PATTERN "*.h"
     )
 
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/liara/renderer/config.h"

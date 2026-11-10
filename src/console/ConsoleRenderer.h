@@ -11,22 +11,27 @@
 
 namespace Liara::Renderer
 {
-    class LiaraRenderer
+    class ConsoleRenderer
     {
     public:
-        LiaraRenderer() = default;
+        ConsoleRenderer() = default;
 
-        ~LiaraRenderer() {
+        /**
+         * Leaves the terminal's alternate screen if a frame was ever drawn, so that whatever was written before the
+         * first frame (the host's output, the renderer's creation logs) is on screen again. A renderer that never drew
+         * writes nothing.
+         */
+        ~ConsoleRenderer() {
             if (m_Initialized) {
-                std::cout << "\033[0m\033[?25h\n";
+                std::cout << "\033[0m\033[?25h\033[?1049l";
                 std::cout.flush();
             }
         }
 
-        LiaraRenderer(const LiaraRenderer&) = delete;
-        LiaraRenderer& operator=(const LiaraRenderer&) = delete;
-        LiaraRenderer(LiaraRenderer&&) = delete;
-        LiaraRenderer& operator=(LiaraRenderer&&) = delete;
+        ConsoleRenderer(const ConsoleRenderer&) = delete;
+        ConsoleRenderer& operator=(const ConsoleRenderer&) = delete;
+        ConsoleRenderer(ConsoleRenderer&&) = delete;
+        ConsoleRenderer& operator=(ConsoleRenderer&&) = delete;
 
         /**
          * Submits a frame for rendering. The frame is represented by a grid of cells, each with a specified color.
@@ -81,8 +86,10 @@ namespace Liara::Renderer
             m_Height = height;
             m_PreviousFrame.assign(static_cast<size_t>(width) * height, 0x00000000U);
 
-            std::cout << "\033[2J";
-            if (isFirstFrame) { std::cout << "\033[?25l"; }
+            // The first frame switches to the alternate screen (which starts blank) instead of clearing the main one,
+            // the way less and vim do, so the main screen's content survives the demo. A later size change clears.
+            if (isFirstFrame) { std::cout << "\033[?1049h\033[?25l"; }
+            else { std::cout << "\033[2J"; }
         }
 
         /**

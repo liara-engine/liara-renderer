@@ -1,7 +1,8 @@
+#include "console/ConsoleRenderer.h"
+
 #include <liara/abi_version.h>
 #include <liara/modules.h>
 #include <liara/renderer/config.h>
-#include <liara/renderer/LiaraRenderer.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
@@ -11,7 +12,7 @@
 struct liara_renderer_t
 {
     uint8_t m_Valid = 0;
-    Liara::Renderer::LiaraRenderer m_Impl;
+    Liara::Renderer::ConsoleRenderer m_Impl;
 };
 
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
