@@ -69,3 +69,12 @@ add_test(NAME test_renderer_no_layer_cxx COMMAND test_renderer_no_layer_cxx)
 set_tests_properties(test_renderer_no_layer_cxx PROPERTIES
         LABELS "gpu"
         ENVIRONMENT "VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation")
+
+# The same binary, one case, required to log the GPU it selected: the proof that a device is actually chosen and
+# created. With PASS_REGULAR_EXPRESSION set CTest ignores the exit code, which the registration above still checks.
+add_test(NAME test_renderer_device_selected_cxx
+        COMMAND test_renderer_device_cxx "--test-case=*three times in a row*")
+set_tests_properties(test_renderer_device_selected_cxx PROPERTIES
+        LABELS "gpu"
+        PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] info: selected "
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
