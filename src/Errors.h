@@ -13,8 +13,9 @@ namespace Liara::Renderer
      * error level.
      *
      * Call it only from inside a `catch` block: it rethrows `std::current_exception()` to tell the types apart.
-     * `Unsupported` gives `LIARA_RESULT_NOT_SUPPORTED`, `std::bad_alloc` gives `LIARA_RESULT_OUT_OF_MEMORY`, and
-     * anything else gives `LIARA_RESULT_FAILED`.
+     * `Unsupported`, `vk::IncompatibleDriverError`, `vk::LayerNotPresentError` and `vk::ExtensionNotPresentError` give
+     * `LIARA_RESULT_NOT_SUPPORTED`; `vk::OutOfHostMemoryError`, `vk::OutOfDeviceMemoryError` and `std::bad_alloc` give
+     * `LIARA_RESULT_OUT_OF_MEMORY`; anything else gives `LIARA_RESULT_FAILED`.
      */
     [[nodiscard]] liara_result_t ResultFromCurrentException() noexcept;
 }  // namespace Liara::Renderer

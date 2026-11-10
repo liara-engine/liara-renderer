@@ -1,11 +1,18 @@
 #include "Renderer.h"
 
+#include "device/Instance.h"
+#include "device/Loader.h"
+
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
+#include <memory>
+
 namespace Liara::Renderer
 {
-    Renderer::Renderer() = default;
+    Renderer::Renderer()
+        : m_Loader(std::make_unique<Loader>())
+        , m_Instance(std::make_unique<Instance>(*m_Loader)) {}
 
     Renderer::~Renderer() = default;
 

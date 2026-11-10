@@ -9,8 +9,13 @@
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
+#include <memory>
+
 namespace Liara::Renderer
 {
+    class Loader;
+    class Instance;
+
     /**
      * @brief Everything one renderer instance owns, behind `struct liara_renderer_t`.
      *
@@ -34,6 +39,9 @@ namespace Liara::Renderer
         [[nodiscard]] liara_result_t SubmitFrame(const liara_render_packet_t& packet);
 
     private:
+        // Destroyed in reverse order: the console first, then the Vulkan objects from the most derived to the loader.
+        std::unique_ptr<Loader> m_Loader;
+        std::unique_ptr<Instance> m_Instance;
         ConsoleRenderer m_Console;
     };
 }  // namespace Liara::Renderer

@@ -45,3 +45,27 @@ target_link_libraries(test_renderer_device_selection_cxx PRIVATE
         doctest::doctest)
 add_test(NAME test_renderer_device_selection_cxx COMMAND test_renderer_device_selection_cxx)
 set_tests_properties(test_renderer_device_selection_cxx PROPERTIES LABELS "unit")
+
+# Creation refused for want of a driver: no GPU needed, so `unit`, and it runs in CI, where there is not even a loader.
+# The renderer logs an error line on purpose here, so there is no FAIL_REGULAR_EXPRESSION.
+add_executable(test_renderer_no_driver_cxx test_renderer_no_driver_cxx.cpp)
+target_link_libraries(test_renderer_no_driver_cxx PRIVATE
+        Liara::Interfaces
+        Liara::Renderer
+        doctest::doctest)
+add_test(NAME test_renderer_no_driver_cxx COMMAND test_renderer_no_driver_cxx)
+set_tests_properties(test_renderer_no_driver_cxx PROPERTIES
+        LABELS "unit"
+        ENVIRONMENT "VK_DRIVER_FILES=/nonexistent/liara-no-driver.json;VK_ICD_FILENAMES=/nonexistent/liara-no-driver.json")
+
+# Creation without the validation layer: refused in Debug, normal in Release, which needs a GPU.
+add_executable(test_renderer_no_layer_cxx test_renderer_no_layer_cxx.cpp)
+target_compile_definitions(test_renderer_no_layer_cxx PRIVATE $<$<CONFIG:Debug>:LIARA_DEBUG=1>)
+target_link_libraries(test_renderer_no_layer_cxx PRIVATE
+        Liara::Interfaces
+        Liara::Renderer
+        doctest::doctest)
+add_test(NAME test_renderer_no_layer_cxx COMMAND test_renderer_no_layer_cxx)
+set_tests_properties(test_renderer_no_layer_cxx PROPERTIES
+        LABELS "gpu"
+        ENVIRONMENT "VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation")
