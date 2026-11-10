@@ -15,12 +15,10 @@ namespace Liara::Renderer
 {
     namespace
     {
+// Everything up to CreateInstance exists for validation alone, which only debug builds use. Compiling it out of release
+// builds, rather than leaving it behind a discarded `if constexpr`, keeps unused-function warnings (clang's
+// -Wunneeded-internal-declaration, MSVC's C4505) from failing the release legs that build with warnings as errors.
 #ifdef LIARA_DEBUG
-        constexpr bool VALIDATION = true;
-#else
-        constexpr bool VALIDATION = false;
-#endif
-
         constexpr const char* VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
 
         VKAPI_ATTR vk::Bool32 VKAPI_CALL OnDebugMessage(const vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -75,15 +73,16 @@ namespace Liara::Renderer
                                   "validation layer provides");
             }
         }
+#endif
 
         vk::raii::Instance CreateInstance(const Loader& loader) {
             std::vector<const char*> layers;
             std::vector<const char*> extensions;
-            if constexpr (VALIDATION) {
-                RequireValidation(loader.GetContext());
-                layers.push_back(VALIDATION_LAYER);
-                extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            }
+#ifdef LIARA_DEBUG
+            RequireValidation(loader.GetContext());
+            layers.push_back(VALIDATION_LAYER);
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
             // No application name: nothing carries one across the ABI before the renderer has a create-info.
             const vk::ApplicationInfo application(nullptr,
@@ -98,15 +97,29 @@ namespace Liara::Renderer
 
             // Chained into the instance's own create-info, the messenger also reports what vkCreateInstance and
             // vkDestroyInstance emit, before and after the separate messenger exists.
+#ifdef LIARA_DEBUG
             const vk::DebugUtilsMessengerCreateInfoEXT messengerInfo = MessengerInfo();
-            if constexpr (VALIDATION) { createInfo.pNext = &messengerInfo; }
+            createInfo.pNext = &messengerInfo;
+#endif
 
-            return {loader.GetContext(), createInfo};
+            try {
+                return {loader.GetContext(), createInfo};
+            }
+            catch (const vk::IncompatibleDriverError&) {
+                // The loader is there but no driver is: the likeliest failure on a machine that has never run Vulkan,
+                // and Vulkan-Hpp's own message ("ErrorIncompatibleDriver") names nothing to install.
+                throw Unsupported("no Vulkan driver found for this machine's GPU: install its Vulkan driver "
+                                  "(vulkan-radeon, vulkan-intel, nvidia-utils or vulkan-nouveau on Arch Linux, the "
+                                  "GPU vendor's driver on Windows)");
+            }
         }
 
-        vk::raii::DebugUtilsMessengerEXT CreateMessenger(const vk::raii::Instance& instance) {
-            if constexpr (VALIDATION) { return {instance, MessengerInfo()}; }
-            else { return nullptr; }
+        vk::raii::DebugUtilsMessengerEXT CreateMessenger([[maybe_unused]] const vk::raii::Instance& instance) {
+#ifdef LIARA_DEBUG
+            return {instance, MessengerInfo()};
+#else
+            return nullptr;
+#endif
         }
     }  // namespace
 

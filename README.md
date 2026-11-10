@@ -11,11 +11,11 @@ sidebar:
 
 It takes render packets and produces pixels. It knows nothing about the ECS, about gameplay or about the editor, and only ever sees the data the host hands it each frame.
 
-It is the most complex module in the project and the one whose replaceability matters most, since a renderer built on another graphics API is the substitution somebody would plausibly actually make. Its only dependency is [liara-interfaces](https://github.com/liara-engine/liara-interfaces).
+It is the most complex module in the project and the one whose replaceability matters most, since a renderer built on another graphics API is the substitution somebody would plausibly actually make. It depends on [liara-interfaces](https://github.com/liara-engine/liara-interfaces), and on Vulkan-Headers and VMA, both header-only and both through vcpkg.
 
 ## Status
 
-**Phase 0.** What exists is a placeholder that can be created, handed a packet and destroyed, which is enough to prove the composition works. Real Vulkan work starts with v0.1: instance, device, swapchain, and one triangle.
+**v0.1, in progress.** Creating a renderer creates a Vulkan 1.3 instance, selects a GPU, and creates a logical device, a command pool and a VMA allocator. Nothing is drawn with Vulkan yet: packets are still drawn in the terminal, and the swapchain and the triangle come next.
 
 ## Documentation
 
@@ -37,12 +37,14 @@ git clone https://github.com/liara-engine/liara-renderer.git
 cd liara-renderer
 
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+      -DVCPKG_MANIFEST_FEATURES=tests \
       -DCMAKE_PREFIX_PATH=/path/to/liara-interfaces/install
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-From v0.1 this also needs the Vulkan SDK, since the module links against the loader and compiles its shaders with `glslc`. [Bootstrap](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/bootstrap/) covers installing it.
+The vcpkg toolchain installs what `vcpkg.json` declares: Vulkan-Headers, VMA, and doctest for the tests. Running the result needs a Vulkan loader and a driver, which the module opens at run time rather than linking ([ADR 0016](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/adr/0016-vulkan-loaded-at-run-time/)), and a debug build also needs the Khronos validation layer. [Bootstrap](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/bootstrap/) covers installing them.
 
 ## Consuming it
 

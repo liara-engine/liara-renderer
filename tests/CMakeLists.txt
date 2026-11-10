@@ -78,3 +78,12 @@ set_tests_properties(test_renderer_device_selected_cxx PROPERTIES
         LABELS "gpu"
         PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] info: selected "
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
+# The same refusal must say what is missing, so that the person reading it knows what to install: a missing loader on a
+# machine without Vulkan (CI), a missing driver here. With PASS_REGULAR_EXPRESSION set CTest ignores the exit code,
+# which the registration above still checks.
+add_test(NAME test_renderer_no_driver_message_cxx COMMAND test_renderer_no_driver_cxx)
+set_tests_properties(test_renderer_no_driver_message_cxx PROPERTIES
+        LABELS "unit"
+        ENVIRONMENT "VK_DRIVER_FILES=/nonexistent/liara-no-driver.json;VK_ICD_FILENAMES=/nonexistent/liara-no-driver.json"
+        PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] error: no Vulkan (loader|driver) found")
