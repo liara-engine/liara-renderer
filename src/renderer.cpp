@@ -2,6 +2,8 @@
 
 #include "Errors.h"
 
+#include "renderer/CreateInfo.h"
+
 #include <liara/abi_version.h>
 #include <liara/modules.h>
 #include <liara/renderer/config.h>
@@ -14,6 +16,9 @@
 
 struct liara_renderer_t
 {
+    explicit liara_renderer_t(const Liara::Renderer::RendererConfig& config)
+        : m_Impl(config) {}
+
     Liara::Renderer::Renderer m_Impl;
 };
 
@@ -33,14 +38,21 @@ uint32_t liara_renderer_abi_version(void) { return LIARA_RENDERER_MODULE_INFO.ab
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
 // NOLINTBEGIN(readability-identifier-naming)
-liara_result_t liara_renderer_create(liara_renderer_handle_t** out_renderer) {
+liara_result_t liara_renderer_create(const liara_renderer_create_info_t* create_info,
+                                     liara_renderer_handle_t** out_renderer) {
     // NOLINTEND(readability-identifier-naming)
-    if (out_renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+    if (create_info == nullptr || out_renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+
+    // Every argument is checked before anything opens the Vulkan loader, and a failure here logs nothing.
+    if (const liara_result_t checked = Liara::Renderer::CheckCreateInfo(*create_info);
+        checked != LIARA_RESULT_SUCCESS) {
+        return checked;
+    }
 
     // Constructing the renderer creates its Vulkan objects and throws on failure. Nothing unwinds through the ABI:
     // the exception becomes a result code, and *out_renderer is written only on success.
     try {
-        auto renderer = std::make_unique<liara_renderer_handle_t>();
+        auto renderer = std::make_unique<liara_renderer_handle_t>(Liara::Renderer::ToConfig(*create_info));
         *out_renderer = renderer.release();
         return LIARA_RESULT_SUCCESS;
     }
