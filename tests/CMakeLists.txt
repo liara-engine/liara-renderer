@@ -1,12 +1,16 @@
 find_package(doctest CONFIG REQUIRED)
 
 add_executable(test_renderer_functions_cxx test_renderer_cxx.cpp)
+target_include_directories(test_renderer_functions_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_renderer_functions_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
         doctest::doctest)
 add_test(NAME test_renderer_functions_cxx COMMAND test_renderer_functions_cxx)
-set_tests_properties(test_renderer_functions_cxx PROPERTIES LABELS "unit")
+# No argument failure may reach Vulkan, and opening the loader always logs a line: any renderer line fails the test.
+set_tests_properties(test_renderer_functions_cxx PROPERTIES
+        LABELS "unit"
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] ")
 
 
 
@@ -23,6 +27,7 @@ set_tests_properties(test_renderer_console_cxx PROPERTIES LABELS "unit")
 # Creates renderer instances, hence a Vulkan device: `gpu`, which CI excludes. Any warning or error line the renderer
 # logs fails the test, validation messages included, even when every CHECK passed.
 add_executable(test_renderer_device_cxx test_renderer_device_cxx.cpp)
+target_include_directories(test_renderer_device_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_renderer_device_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
@@ -49,6 +54,7 @@ set_tests_properties(test_renderer_device_selection_cxx PROPERTIES LABELS "unit"
 # Creation refused for want of a driver: no GPU needed, so `unit`, and it runs in CI, where there is not even a loader.
 # The renderer logs an error line on purpose here, so there is no FAIL_REGULAR_EXPRESSION.
 add_executable(test_renderer_no_driver_cxx test_renderer_no_driver_cxx.cpp)
+target_include_directories(test_renderer_no_driver_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_renderer_no_driver_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
@@ -61,6 +67,7 @@ set_tests_properties(test_renderer_no_driver_cxx PROPERTIES
 # Creation without the validation layer: refused in Debug, normal in Release, which needs a GPU.
 add_executable(test_renderer_no_layer_cxx test_renderer_no_layer_cxx.cpp)
 target_compile_definitions(test_renderer_no_layer_cxx PRIVATE $<$<CONFIG:Debug>:LIARA_DEBUG=1>)
+target_include_directories(test_renderer_no_layer_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_renderer_no_layer_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer

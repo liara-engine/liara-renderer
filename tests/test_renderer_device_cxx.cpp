@@ -1,5 +1,7 @@
 // NOLINTBEGIN(readability-identifier-naming)
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "TestCreateInfo.h"
+
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
@@ -34,7 +36,7 @@ namespace
 TEST_CASE("liara_renderer_create - three times in a row") {
     for (int i = 0; i < 3; ++i) {
         liara_renderer_handle_t* renderer = nullptr;
-        REQUIRE(liara_renderer_create(&renderer) == LIARA_RESULT_SUCCESS);
+        REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
         REQUIRE(renderer != nullptr);
         liara_renderer_destroy(renderer);
     }
@@ -43,8 +45,8 @@ TEST_CASE("liara_renderer_create - three times in a row") {
 TEST_CASE("liara_renderer_create - two renderers alive at once") {
     liara_renderer_handle_t* first = nullptr;
     liara_renderer_handle_t* second = nullptr;
-    REQUIRE(liara_renderer_create(&first) == LIARA_RESULT_SUCCESS);
-    REQUIRE(liara_renderer_create(&second) == LIARA_RESULT_SUCCESS);
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &first) == LIARA_RESULT_SUCCESS);
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &second) == LIARA_RESULT_SUCCESS);
     CHECK(first != second);
     liara_renderer_destroy(first);
     liara_renderer_destroy(second);
@@ -52,7 +54,7 @@ TEST_CASE("liara_renderer_create - two renderers alive at once") {
 
 TEST_CASE("liara_renderer_submit_frame - forwards the console renderer's verdicts") {
     liara_renderer_handle_t* renderer = nullptr;
-    REQUIRE(liara_renderer_create(&renderer) == LIARA_RESULT_SUCCESS);
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
 
     CHECK(liara_renderer_submit_frame(renderer, nullptr) == LIARA_RESULT_NULL_POINTER);
 

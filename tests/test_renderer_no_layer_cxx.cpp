@@ -1,5 +1,7 @@
 // NOLINTBEGIN(readability-identifier-naming)
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "TestCreateInfo.h"
+
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
@@ -18,10 +20,10 @@ TEST_CASE("liara_renderer_create - validation layer unavailable") {
 
     liara_renderer_handle_t* renderer = sentinel;
 #ifdef LIARA_DEBUG
-    CHECK(liara_renderer_create(&renderer) == LIARA_RESULT_NOT_SUPPORTED);
+    CHECK(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_NOT_SUPPORTED);
     CHECK(renderer == sentinel);
 #else
-    REQUIRE(liara_renderer_create(&renderer) == LIARA_RESULT_SUCCESS);
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
     CHECK(renderer != sentinel);
     liara_renderer_destroy(renderer);
 #endif

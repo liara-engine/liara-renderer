@@ -4,6 +4,8 @@
  * @file Renderer.h
  */
 
+#include "CreateInfo.h"
+
 #include "../console/ConsoleRenderer.h"
 
 #include <liara/renderer/packet.h>
@@ -29,7 +31,7 @@ namespace Liara::Renderer
     {
     public:
         /** @brief Create everything; throws on failure, and the shim translates. */
-        Renderer();
+        explicit Renderer(const RendererConfig& config);
         ~Renderer();
 
         Renderer(const Renderer&) = delete;
