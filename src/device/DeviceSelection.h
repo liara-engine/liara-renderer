@@ -15,6 +15,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Liara::Renderer
@@ -28,6 +29,25 @@ namespace Liara::Renderer
         std::string m_DriverName;                 /**< VkPhysicalDeviceDriverProperties::driverName. */
         std::string m_DriverInfo;                 /**< VkPhysicalDeviceDriverProperties::driverInfo. */
         std::optional<uint32_t> m_GraphicsFamily; /**< First queue family with VK_QUEUE_GRAPHICS_BIT, if any. */
+        bool m_SupportsSwapchain = false;         /**< VK_KHR_swapchain among the device's extensions. */
+        /** First family with VK_QUEUE_GRAPHICS_BIT that can also present to the surface, if any. */
+        std::optional<uint32_t> m_GraphicsPresentFamily;
+    };
+
+    /** @brief What the caller asks of the selection besides the fixed requirements. */
+    struct SelectionRequest
+    {
+        bool m_RequirePresentation = false; /**< True when the renderer has a surface to present to. */
+        std::string_view m_PreferredName;   /**< Empty: no preference. */
+    };
+
+    /** @brief What became of the preferred name. */
+    enum class PreferenceOutcome : std::uint8_t
+    {
+        None,               /**< No name was given. */
+        Honoured,           /**< The chosen candidate's name contains it. */
+        NoMatch,            /**< No candidate's name contains it. */
+        MatchedOnlyRejected /**< Some names contain it, and every one of those candidates was rejected. */
     };
 
     /** @brief A candidate that failed a requirement, and the first requirement it failed. */
@@ -42,17 +62,21 @@ namespace Liara::Renderer
     {
         std::optional<size_t> m_Chosen;
         std::vector<DeviceRejection> m_Rejections;
+        PreferenceOutcome m_Preference = PreferenceOutcome::None;
     };
 
     /**
      * @brief Choose the device the renderer creates.
      *
      * A candidate is rejected by the first requirement it fails, in this order: an API version below Vulkan 1.3, then
-     * no queue family supporting graphics. Among the others, a discrete GPU beats an integrated one, which beats a
-     * virtual one, which beats a CPU implementation, which beats anything else; ties go to the lowest index, which is
-     * the enumeration order. A candidate that is merely outranked is not a rejection.
+     * no queue family supporting graphics, then, only when presentation is required, no VK_KHR_swapchain, then no
+     * family doing both graphics and presentation. Among the others, those whose name contains the preferred name,
+     * compared case-insensitively over ASCII, come first; within each group a discrete GPU beats an integrated one,
+     * which beats a virtual one, which beats a CPU implementation, which beats anything else; ties go to the lowest
+     * index, which is the enumeration order. A candidate that is merely outranked is not a rejection.
      *
-     * Writes nothing anywhere.
+     * Writes nothing anywhere: the outcome of the preference is reported in the result, for the caller to log.
      */
-    [[nodiscard]] DeviceSelection SelectDevice(std::span<const DeviceCandidate> candidates);
+    [[nodiscard]] DeviceSelection SelectDevice(std::span<const DeviceCandidate> candidates,
+                                               const SelectionRequest& request = {});
 }  // namespace Liara::Renderer
