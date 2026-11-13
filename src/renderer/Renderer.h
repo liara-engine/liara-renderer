@@ -4,7 +4,7 @@
  * @file Renderer.h
  */
 
-#include "console/ConsoleRenderer.h"
+#include "../console/ConsoleRenderer.h"
 
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
