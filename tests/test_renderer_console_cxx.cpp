@@ -1,5 +1,8 @@
 // NOLINTBEGIN(readability-identifier-naming)
 #define DOCTEST_CONFIG_IMPLEMENT
+#include "Log.h"
+#include "SinkCapture.h"
+
 #include "console/ConsoleRenderer.h"
 
 #include <liara/renderer/packet.h>
@@ -7,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <iostream>
 #include <sstream>
 #include <streambuf>
@@ -120,6 +124,68 @@ TEST_CASE("ConsoleRenderer::SubmitFrame - out-of-bounds drawable is clipped, not
     Liara::Renderer::ConsoleRenderer console;
     const liara_render_drawable_t drawable {.x = 100.0F, .y = -5.0F, .color = 0xFFFFFFFFU};
     CHECK(console.SubmitFrame(Packet(4, 4, &drawable, 1)) == LIARA_RESULT_SUCCESS);
+}
+
+TEST_CASE("ConsoleRenderer - a console that drew holds the sink's lines until it is destroyed") {
+    const SinkCapture sink;
+    const CoutCapture capture;
+    {
+        Liara::Renderer::ConsoleRenderer console(true);
+        REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+        Liara::Renderer::Log::Warning("held");
+        CHECK(sink.Written().empty());
+    }
+    CHECK(sink.Written() == "[liara-renderer] warning: held\n");
+}
+
+TEST_CASE("ConsoleRenderer - a console that does not hold lets lines through at once") {
+    const SinkCapture sink;
+    const CoutCapture capture;
+    Liara::Renderer::ConsoleRenderer console(false);
+    REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+    Liara::Renderer::Log::Warning("direct");
+    CHECK(sink.Written() == "[liara-renderer] warning: direct\n");
+}
+
+TEST_CASE("ConsoleRenderer - a console that never drew holds nothing") {
+    const SinkCapture sink;
+    const CoutCapture capture;
+    const Liara::Renderer::ConsoleRenderer console(true);
+    Liara::Renderer::Log::Warning("direct");
+    CHECK(sink.Written() == "[liara-renderer] warning: direct\n");
+}
+
+TEST_CASE("ConsoleRenderer - the first frame writes the status line under the grid") {
+    const SinkCapture sink;
+    const Liara::Renderer::Log::Counts counts = Liara::Renderer::Log::GetCounts();
+    const CoutCapture capture;
+    {
+        Liara::Renderer::ConsoleRenderer console(true);
+        REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+    }
+    CHECK(capture.Text().find(std::format("\033[5;1H\033[0mrenderer: {} warnings, {} errors (shown on exit)\033[K",
+                                          counts.m_Warnings,
+                                          counts.m_Errors))
+          != std::string::npos);
+}
+
+TEST_CASE("ConsoleRenderer - the status line is rewritten when the counts change, and only then") {
+    const SinkCapture sink;
+    const CoutCapture capture;
+    Liara::Renderer::ConsoleRenderer console(false);
+    REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+
+    const size_t afterFirst = capture.Text().size();
+    REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+    CHECK(capture.Text().find("renderer: ", afterFirst) == std::string::npos);
+
+    Liara::Renderer::Log::Warning("one more");
+    const Liara::Renderer::Log::Counts counts = Liara::Renderer::Log::GetCounts();
+    const size_t afterSecond = capture.Text().size();
+    REQUIRE(console.SubmitFrame(ValidPacket()) == LIARA_RESULT_SUCCESS);
+    CHECK(capture.Text().find(std::format("renderer: {} warnings, {} errors\033[K", counts.m_Warnings, counts.m_Errors),
+                              afterSecond)
+          != std::string::npos);
 }
 
 int main(const int argc, const char* const* argv) {

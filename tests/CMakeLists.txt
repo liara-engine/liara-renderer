@@ -16,13 +16,24 @@ set_tests_properties(test_renderer_functions_cxx PROPERTIES
 
 # The console renderer is private and header-only: the test includes it from src/ and links no renderer, so it needs
 # no instance and no GPU.
-add_executable(test_renderer_console_cxx test_renderer_console_cxx.cpp)
-target_include_directories(test_renderer_console_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src)
+add_executable(test_renderer_console_cxx
+        test_renderer_console_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/Log.cpp)
+target_include_directories(test_renderer_console_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_renderer_console_cxx PRIVATE
         Liara::Interfaces
         doctest::doctest)
 add_test(NAME test_renderer_console_cxx COMMAND test_renderer_console_cxx)
 set_tests_properties(test_renderer_console_cxx PROPERTIES LABELS "unit")
+
+# The log sink alone, compiled into the test like the console renderer above: no instance, no GPU.
+add_executable(test_renderer_log_cxx
+        test_renderer_log_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/Log.cpp)
+target_include_directories(test_renderer_log_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_renderer_log_cxx PRIVATE doctest::doctest)
+add_test(NAME test_renderer_log_cxx COMMAND test_renderer_log_cxx)
+set_tests_properties(test_renderer_log_cxx PROPERTIES LABELS "unit")
 
 # Creates renderer instances, hence a Vulkan device: `gpu`, which CI excludes. Any warning or error line the renderer
 # logs fails the test, validation messages included, even when every CHECK passed.
