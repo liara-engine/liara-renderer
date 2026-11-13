@@ -13,7 +13,9 @@
 #include <memory>
 
 struct liara_renderer_t
-{ Liara::Renderer::Renderer m_Impl; };
+{
+    Liara::Renderer::Renderer m_Impl;
+};
 
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
     .struct_version = LIARA_MODULE_INFO_VERSION,
