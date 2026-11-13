@@ -2,6 +2,7 @@
 
 #include "CreateInfo.h"
 
+#include "console/Terminal.h"
 #include "device/Allocator.h"
 #include "device/Device.h"
 #include "device/Instance.h"
@@ -19,7 +20,8 @@ namespace Liara::Renderer
         : m_Loader(std::make_unique<Loader>())
         , m_Instance(std::make_unique<Instance>(*m_Loader))
         , m_Device(std::make_unique<Device>(m_Instance->Get()))
-        , m_Allocator(std::make_unique<Allocator>(*m_Loader, *m_Instance, *m_Device)) {}
+        , m_Allocator(std::make_unique<Allocator>(*m_Loader, *m_Instance, *m_Device))
+        , m_Console(StandardStreamsAreTerminals()) {}
 
     Renderer::~Renderer() = default;
 
