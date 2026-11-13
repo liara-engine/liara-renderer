@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <doctest/doctest.h>
@@ -14,14 +15,18 @@
 // and the candidates are made up.
 
 using Liara::Renderer::DeviceCandidate;
+using Liara::Renderer::PreferenceOutcome;
 using Liara::Renderer::SelectDevice;
+using Liara::Renderer::SelectionRequest;
 
 namespace
 {
     DeviceCandidate Candidate(std::string name,
                               const vk::PhysicalDeviceType type,
                               const uint32_t apiVersion = VK_API_VERSION_1_3,
-                              const std::optional<uint32_t> graphics = 0U) {
+                              const std::optional<uint32_t> graphics = 0U,
+                              const bool swapchain = true,
+                              const std::optional<uint32_t> presentFamily = 0U) {
         return {
             .m_Name = std::move(name),
             .m_Type = type,
@@ -29,7 +34,13 @@ namespace
             .m_DriverName = "driver",
             .m_DriverInfo = "1.0",
             .m_GraphicsFamily = graphics,
+            .m_SupportsSwapchain = swapchain,
+            .m_GraphicsPresentFamily = presentFamily,
         };
+    }
+
+    constexpr SelectionRequest Presenting(const std::string_view preferredName = {}) {
+        return {.m_RequirePresentation = true, .m_PreferredName = preferredName};
     }
 
     constexpr uint32_t VULKAN_1_2 = VK_MAKE_API_VERSION(0, 1, 2, 0);
@@ -113,6 +124,74 @@ TEST_CASE("SelectDevice - three ineligible candidates, three rejections in index
     CHECK(selection.m_Rejections.at(0).m_Index == 0);
     CHECK(selection.m_Rejections.at(1).m_Index == 1);
     CHECK(selection.m_Rejections.at(2).m_Index == 2);
+}
+
+TEST_CASE("SelectDevice - without a preference, the outcome says so and the type order applies") {
+    const std::array candidates {Candidate("igpu", vk::PhysicalDeviceType::eIntegratedGpu),
+                                 Candidate("dgpu", vk::PhysicalDeviceType::eDiscreteGpu)};
+    const auto selection = SelectDevice(candidates, Presenting());
+    CHECK(selection.m_Chosen == 1U);
+    CHECK(selection.m_Preference == PreferenceOutcome::None);
+}
+
+TEST_CASE("SelectDevice - a matching name beats a better-ranked type") {
+    const std::array candidates {Candidate("AMD Radeon RX 6800", vk::PhysicalDeviceType::eDiscreteGpu),
+                                 Candidate("Intel(R) UHD Graphics 770", vk::PhysicalDeviceType::eIntegratedGpu)};
+    const auto selection = SelectDevice(candidates, Presenting("uhd"));
+    CHECK(selection.m_Chosen == 1U);
+    CHECK(selection.m_Preference == PreferenceOutcome::Honoured);
+}
+
+TEST_CASE("SelectDevice - a name matching nothing selects as without a preference") {
+    const std::array candidates {Candidate("igpu", vk::PhysicalDeviceType::eIntegratedGpu),
+                                 Candidate("dgpu", vk::PhysicalDeviceType::eDiscreteGpu)};
+    const auto selection = SelectDevice(candidates, Presenting("no-such-gpu"));
+    CHECK(selection.m_Chosen == 1U);
+    CHECK(selection.m_Preference == PreferenceOutcome::NoMatch);
+}
+
+TEST_CASE("SelectDevice - a name matching only a rejected candidate selects as without a preference") {
+    const std::array candidates {
+        Candidate("Intel UHD", vk::PhysicalDeviceType::eIntegratedGpu, VK_API_VERSION_1_3, 0U, false),
+        Candidate("AMD Radeon", vk::PhysicalDeviceType::eDiscreteGpu)};
+    const auto selection = SelectDevice(candidates, Presenting("intel"));
+    CHECK(selection.m_Chosen == 1U);
+    CHECK(selection.m_Preference == PreferenceOutcome::MatchedOnlyRejected);
+    REQUIRE(selection.m_Rejections.size() == 1);
+    CHECK(selection.m_Rejections.at(0).m_Index == 0);
+    CHECK(Contains(selection.m_Rejections.at(0).m_Reason, "VK_KHR_swapchain"));
+}
+
+TEST_CASE("SelectDevice - among matching candidates, the type order applies") {
+    const std::array candidates {Candidate("Vendor GPU integrated", vk::PhysicalDeviceType::eIntegratedGpu),
+                                 Candidate("Vendor GPU discrete", vk::PhysicalDeviceType::eDiscreteGpu),
+                                 Candidate("Other", vk::PhysicalDeviceType::eDiscreteGpu)};
+    const auto selection = SelectDevice(candidates, Presenting("VENDOR gpu"));
+    CHECK(selection.m_Chosen == 1U);
+    CHECK(selection.m_Preference == PreferenceOutcome::Honoured);
+}
+
+TEST_CASE("SelectDevice - presenting needs a family that does graphics and presentation") {
+    const std::array candidates {
+        Candidate("cannot present", vk::PhysicalDeviceType::eDiscreteGpu, VK_API_VERSION_1_3, 0U, true, std::nullopt),
+        Candidate("can present", vk::PhysicalDeviceType::eIntegratedGpu)};
+    const auto selection = SelectDevice(candidates, Presenting());
+    CHECK(selection.m_Chosen == 1U);
+    REQUIRE(selection.m_Rejections.size() == 1);
+    CHECK(selection.m_Rejections.at(0).m_Index == 0);
+    CHECK(Contains(selection.m_Rejections.at(0).m_Reason, "presentation"));
+}
+
+TEST_CASE("SelectDevice - without presentation, the presentation fields are ignored") {
+    const std::array candidates {Candidate("no swapchain, no present family",
+                                           vk::PhysicalDeviceType::eDiscreteGpu,
+                                           VK_API_VERSION_1_3,
+                                           0U,
+                                           false,
+                                           std::nullopt)};
+    const auto selection = SelectDevice(candidates, SelectionRequest {});
+    CHECK(selection.m_Chosen == 0U);
+    CHECK(selection.m_Rejections.empty());
 }
 
 // NOLINTEND(readability-identifier-naming)

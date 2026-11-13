@@ -33,6 +33,8 @@ namespace Liara::Renderer
                 .m_DriverName = {},
                 .m_DriverInfo = {},
                 .m_GraphicsFamily = FirstGraphicsFamily(physical),
+                .m_SupportsSwapchain = false,
+                .m_GraphicsPresentFamily = std::nullopt,
             };
             // The driver's name and version string are core in Vulkan 1.2; an older device is rejected anyway.
             if (properties.apiVersion >= VK_API_VERSION_1_2) {
