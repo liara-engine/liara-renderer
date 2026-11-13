@@ -36,6 +36,11 @@ HeaderFilterRegex: '(include|src|tests)/.*\.(h|hpp|tpp)$'
 ExcludeHeaderFilterRegex: '(/vcpkg_installed/|/build/|/liara-interfaces/)'
 
 CheckOptions:
+    # Vulkan-Hpp spreads its declarations over internal headers (vulkan_enums.hpp, vulkan_structs.hpp, vulkan_core.h
+    # for the C macros) meant to be reached through vulkan.hpp and vulkan_raii.hpp, and none of them carries an IWYU
+    # export pragma, so include-cleaner would demand the internal headers. Same for VMA's single header.
+    -   key: misc-include-cleaner.IgnoreHeaders
+        value: 'vulkan/.*;vk_mem_alloc\.h'
     -   key: readability-identifier-naming.ClassCase
         value: CamelCase
     -   key: readability-identifier-naming.StructCase

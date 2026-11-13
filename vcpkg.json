@@ -4,7 +4,10 @@
   "description": "A renderer for the Liara game engine.",
   "homepage": "https://github.com/liara-engine/liara-renderer",
   "license": "MIT",
-  "dependencies": [],
+  "dependencies": [
+    "vulkan-headers",
+    "vulkan-memory-allocator"
+  ],
   "features": {
     "tests": {
       "description": "Build the liara-renderer test suite.",

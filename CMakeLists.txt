@@ -37,6 +37,11 @@ if(NOT TARGET Liara::Interfaces)
             " (see https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/bootstrap)")
 endif()
 
+# Header-only, both of them: Vulkan-Hpp comes with vulkan-headers, and the loader is opened at run time rather than
+# linked (VK_NO_PROTOTYPES below; ADR 0016).
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+
 if(PROJECT_IS_TOP_LEVEL)
     set(LIARA_RENDERER_IS_TOP_LEVEL ON)
 else()
@@ -67,11 +72,22 @@ liara_configure_target(liara_renderer)
 
 target_link_libraries(liara_renderer PUBLIC Liara::Interfaces)
 
+target_link_libraries(liara_renderer PRIVATE Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
+
+# No Vulkan C prototype is declared inside the module, so a direct call to one is a compile error instead of a link-time
+# dependency on the loader, which CI machines do not have. Every call goes through Vulkan-Hpp's dispatchers, and VMA
+# fetches its functions through the two GetProcAddr pointers it is given.
+target_compile_definitions(liara_renderer PRIVATE
+        VK_NO_PROTOTYPES
+        VMA_STATIC_VULKAN_FUNCTIONS=0
+        VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
+
 target_include_directories(liara_renderer PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_include_directories(liara_renderer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_compile_definitions(liara_renderer PRIVATE LIARA_RENDERER_BUILD)
 
@@ -100,12 +116,6 @@ if(LIARA_RENDERER_INSTALL)
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-runtime
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT liara-renderer-runtime
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT liara-renderer-dev
-    )
-
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer"
-            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/liara"
-            COMPONENT liara-renderer-dev
-            FILES_MATCHING PATTERN "*.h"
     )
 
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/liara/renderer/config.h"

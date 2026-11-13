@@ -42,7 +42,7 @@ What it buys is that an editor becomes possible later without an interface chang
 
 ## What exists today
 
-A placeholder. The renderer can be created, handed a packet and destroyed, which is enough to prove composition works, and `src/` holds one file. Real Vulkan work starts with v0.1, and the [roadmap](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/roadmap/v0-1/) says what that milestone contains.
+The Vulkan device layer, and nothing drawn with it yet. Creating a renderer opens the Vulkan loader at run time rather than linking it, for the reasons in [ADR 0016](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/adr/0016-vulkan-loaded-at-run-time/), creates a Vulkan 1.3 instance, selects a GPU, and creates a logical device with one graphics queue, a command pool and a VMA allocator. A debug build refuses to start without the Khronos validation layer, so that a clean validation log means the layer ran. There is no surface and no swapchain yet: the packet is still drawn by the console renderer, as coloured cells in the terminal. The [roadmap](https://liara-engine.liara-engine-documentation.workers.dev/liara/latest/guides/roadmap/v0-1/) says what the rest of v0.1 adds.
 
 The packet it receives today is also a placeholder: a grid width and height, a background colour, and drawables that are an x, a y and a packed colour. The views, lights, meshes and materials arrive with v0.2.
 

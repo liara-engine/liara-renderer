@@ -27,6 +27,7 @@ jobs:
     uses: liara-engine/.github/.github/workflows/reusable-module-build.yml@v2
     with:
       module: liara-renderer
+      needs-vulkan-validation-layers: true
       github-repo-version: v2
 
   format:

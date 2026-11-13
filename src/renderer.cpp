@@ -1,17 +1,20 @@
+#include "renderer/Renderer.h"
+
+#include "Errors.h"
+
 #include <liara/abi_version.h>
 #include <liara/modules.h>
 #include <liara/renderer/config.h>
-#include <liara/renderer/LiaraRenderer.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
 #include <cstdint>
+#include <memory>
 
 struct liara_renderer_t
 {
-    uint8_t m_Valid = 0;
-    Liara::Renderer::LiaraRenderer m_Impl;
+    Liara::Renderer::Renderer m_Impl;
 };
 
 static constexpr liara_module_info_t LIARA_RENDERER_MODULE_INFO = {
@@ -34,11 +37,16 @@ liara_result_t liara_renderer_create(liara_renderer_handle_t** out_renderer) {
     // NOLINTEND(readability-identifier-naming)
     if (out_renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
 
-    auto* renderer = new liara_renderer_handle_t();
-    renderer->m_Valid = 1;
-
-    *out_renderer = renderer;
-    return LIARA_RESULT_SUCCESS;
+    // Constructing the renderer creates its Vulkan objects and throws on failure. Nothing unwinds through the ABI:
+    // the exception becomes a result code, and *out_renderer is written only on success.
+    try {
+        auto renderer = std::make_unique<liara_renderer_handle_t>();
+        *out_renderer = renderer.release();
+        return LIARA_RESULT_SUCCESS;
+    }
+    catch (...) {
+        return Liara::Renderer::ResultFromCurrentException();
+    }
 }  // NOLINTEND(cppcoreguidelines-owning-memory)
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
@@ -52,6 +60,12 @@ void liara_renderer_destroy(liara_renderer_handle_t* renderer) {
 liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, const liara_render_packet_t* packet) {
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr || packet == nullptr) { return LIARA_RESULT_NULL_POINTER; }
-    if (renderer->m_Valid != 1) { return LIARA_RESULT_INVALID_STATE; }
-    return renderer->m_Impl.SubmitFrame(*packet);
+
+    // The console renderer allocates its frame, so this can throw too.
+    try {
+        return renderer->m_Impl.SubmitFrame(*packet);
+    }
+    catch (...) {
+        return Liara::Renderer::ResultFromCurrentException();
+    }
 }
