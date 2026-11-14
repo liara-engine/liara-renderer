@@ -19,6 +19,7 @@ namespace Liara::Renderer
     class Device;
     class Instance;
     class Loader;
+    class Surface;
 
     /**
      * @brief Everything one renderer instance owns, behind `struct liara_renderer_t`.
@@ -46,6 +47,7 @@ namespace Liara::Renderer
         // Destroyed in reverse order: the console first, then the Vulkan objects from the most derived to the loader.
         std::unique_ptr<Loader> m_Loader;
         std::unique_ptr<Instance> m_Instance;
+        std::unique_ptr<Surface> m_Surface; /**< Null for a renderer without a window. */
         std::unique_ptr<Device> m_Device;
         std::unique_ptr<Allocator> m_Allocator;
         ConsoleRenderer m_Console;

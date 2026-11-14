@@ -54,7 +54,7 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    DeviceSelection SelectDevice(const std::span<const DeviceCandidate> candidates, const SelectionRequest& request) {
+    DeviceSelection SelectDevice(const std::span<const DeviceCandidate> candidates, const SelectionCriteria& request) {
         const bool hasPreference = !request.m_PreferredName.empty();
         DeviceSelection selection;
         bool anyNameMatches = false;
@@ -79,7 +79,7 @@ namespace Liara::Renderer
             ++index;
         }
 
-        if (!hasPreference) { selection.m_Preference = PreferenceOutcome::None; }
+        if (!hasPreference) { selection.m_Preference = PreferenceOutcome::NotGiven; }
         else if (chosenMatches) { selection.m_Preference = PreferenceOutcome::Honoured; }
         else if (anyNameMatches) { selection.m_Preference = PreferenceOutcome::MatchedOnlyRejected; }
         else { selection.m_Preference = PreferenceOutcome::NoMatch; }

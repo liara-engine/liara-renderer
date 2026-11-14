@@ -35,7 +35,7 @@ namespace Liara::Renderer
     };
 
     /** @brief What the caller asks of the selection besides the fixed requirements. */
-    struct SelectionRequest
+    struct SelectionCriteria
     {
         bool m_RequirePresentation = false; /**< True when the renderer has a surface to present to. */
         std::string_view m_PreferredName;   /**< Empty: no preference. */
@@ -44,7 +44,7 @@ namespace Liara::Renderer
     /** @brief What became of the preferred name. */
     enum class PreferenceOutcome : std::uint8_t
     {
-        None,               /**< No name was given. */
+        NotGiven,           /**< No name was given. (Not `None`: <X11/Xlib.h> defines it as a macro.) */
         Honoured,           /**< The chosen candidate's name contains it. */
         NoMatch,            /**< No candidate's name contains it. */
         MatchedOnlyRejected /**< Some names contain it, and every one of those candidates was rejected. */
@@ -62,7 +62,7 @@ namespace Liara::Renderer
     {
         std::optional<size_t> m_Chosen;
         std::vector<DeviceRejection> m_Rejections;
-        PreferenceOutcome m_Preference = PreferenceOutcome::None;
+        PreferenceOutcome m_Preference = PreferenceOutcome::NotGiven;
     };
 
     /**
@@ -78,5 +78,5 @@ namespace Liara::Renderer
      * Writes nothing anywhere: the outcome of the preference is reported in the result, for the caller to log.
      */
     [[nodiscard]] DeviceSelection SelectDevice(std::span<const DeviceCandidate> candidates,
-                                               const SelectionRequest& request = {});
+                                               const SelectionCriteria& request = {});
 }  // namespace Liara::Renderer
