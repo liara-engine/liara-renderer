@@ -17,7 +17,7 @@
 using Liara::Renderer::DeviceCandidate;
 using Liara::Renderer::PreferenceOutcome;
 using Liara::Renderer::SelectDevice;
-using Liara::Renderer::SelectionRequest;
+using Liara::Renderer::SelectionCriteria;
 
 namespace
 {
@@ -39,7 +39,7 @@ namespace
         };
     }
 
-    constexpr SelectionRequest Presenting(const std::string_view preferredName = {}) {
+    constexpr SelectionCriteria Presenting(const std::string_view preferredName = {}) {
         return {.m_RequirePresentation = true, .m_PreferredName = preferredName};
     }
 
@@ -131,7 +131,7 @@ TEST_CASE("SelectDevice - without a preference, the outcome says so and the type
                                  Candidate("dgpu", vk::PhysicalDeviceType::eDiscreteGpu)};
     const auto selection = SelectDevice(candidates, Presenting());
     CHECK(selection.m_Chosen == 1U);
-    CHECK(selection.m_Preference == PreferenceOutcome::None);
+    CHECK(selection.m_Preference == PreferenceOutcome::NotGiven);
 }
 
 TEST_CASE("SelectDevice - a matching name beats a better-ranked type") {
@@ -189,7 +189,7 @@ TEST_CASE("SelectDevice - without presentation, the presentation fields are igno
                                            0U,
                                            false,
                                            std::nullopt)};
-    const auto selection = SelectDevice(candidates, SelectionRequest {});
+    const auto selection = SelectDevice(candidates, SelectionCriteria {});
     CHECK(selection.m_Chosen == 0U);
     CHECK(selection.m_Rejections.empty());
 }

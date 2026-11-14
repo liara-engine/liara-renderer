@@ -43,7 +43,7 @@ target_link_libraries(test_renderer_device_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
         doctest::doctest)
-add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx)
+add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx "--test-case-exclude=*no device matches*")
 set_tests_properties(test_renderer_device_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
@@ -109,6 +109,13 @@ set_tests_properties(test_renderer_device_selected_cxx PROPERTIES
         LABELS "gpu"
         PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] info: selected "
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
+# The same binary, one case: a preferred GPU no device matches. Creation goes on with the usual choice, and says why in
+# a warning, which is what this registration requires and what the main one would fail on.
+add_test(NAME test_renderer_device_preference_cxx COMMAND test_renderer_device_cxx "--test-case=*no device matches*")
+set_tests_properties(test_renderer_device_preference_cxx PROPERTIES
+        LABELS "gpu"
+        PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] warning: no GPU name contains \"liara-no-such-gpu\"")
 
 # The same refusal must say what is missing, so that the person reading it knows what to install: a missing loader on a
 # machine without Vulkan (CI), a missing driver here. With PASS_REGULAR_EXPRESSION set CTest ignores the exit code,

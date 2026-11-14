@@ -4,9 +4,13 @@
 #include "Log.h"
 #include "Unsupported.h"
 
+#include "swapchain/Surface.h"
+
+#include <liara/native_window.h>
 #include <liara/renderer/config.h>
 
 #include <algorithm>
+#include <format>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,6 +19,30 @@ namespace Liara::Renderer
 {
     namespace
     {
+        bool HasExtension(const std::vector<vk::ExtensionProperties>& extensions, const std::string_view name) {
+            return std::ranges::any_of(extensions, [name](const vk::ExtensionProperties& extension) {
+                return std::string_view(extension.extensionName.data()) == name;
+            });
+        }
+
+        /** @brief Add the surface extensions a window of this kind needs, or throw Unsupported if one is missing. */
+        void AddSurfaceExtensions(const vk::raii::Context& context,
+                                  const liara_native_window_kind_t windowKind,
+                                  std::vector<const char*>& extensions) {
+            if (windowKind == LIARA_NATIVE_WINDOW_KIND_NONE) { return; }
+            const auto available = context.enumerateInstanceExtensionProperties();
+            for (const char* name : {VK_KHR_SURFACE_EXTENSION_NAME, SurfaceExtensionName(windowKind)}) {
+                if (name == nullptr || !HasExtension(available, name)) {
+                    throw Unsupported(
+                        std::format("the Vulkan loader does not provide {}, needed to present to {} {} window",
+                                    name == nullptr ? "a surface extension" : name,
+                                    WindowKindArticle(windowKind),
+                                    WindowKindName(windowKind)));
+                }
+                extensions.push_back(name);
+            }
+        }
+
 // Everything up to CreateInstance exists for validation alone, which only debug builds use. Compiling it out of release
 // builds, rather than leaving it behind a discarded `if constexpr`, keeps unused-function warnings (clang's
 // -Wunneeded-internal-declaration, MSVC's C4505) from failing the release legs that build with warnings as errors.
@@ -48,12 +76,6 @@ namespace Liara::Renderer
                     &OnDebugMessage};
         }
 
-        bool HasExtension(const std::vector<vk::ExtensionProperties>& extensions, const std::string_view name) {
-            return std::ranges::any_of(extensions, [name](const vk::ExtensionProperties& extension) {
-                return std::string_view(extension.extensionName.data()) == name;
-            });
-        }
-
         /** @brief Throw Unsupported unless a debug build has everything validation needs. */
         void RequireValidation(const vk::raii::Context& context) {
             const auto layers = context.enumerateInstanceLayerProperties();
@@ -75,13 +97,21 @@ namespace Liara::Renderer
         }
 #endif
 
-        vk::raii::Instance CreateInstance(const Loader& loader) {
+        vk::raii::Instance CreateInstance(const Loader& loader, const liara_native_window_kind_t windowKind) {
             std::vector<const char*> layers;
             std::vector<const char*> extensions;
+            AddSurfaceExtensions(loader.GetContext(), windowKind, extensions);
 #ifdef LIARA_DEBUG
             RequireValidation(loader.GetContext());
             layers.push_back(VALIDATION_LAYER);
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            // Synchronization validation, through the layer's settings where it offers VK_EXT_layer_settings, and
+            // through the older VK_EXT_validation_features otherwise. Both extensions come from the layer itself.
+            const bool hasLayerSettings =
+                HasExtension(loader.GetContext().enumerateInstanceExtensionProperties(std::string(VALIDATION_LAYER)),
+                             VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+            extensions.push_back(hasLayerSettings ? VK_EXT_LAYER_SETTINGS_EXTENSION_NAME
+                                                  : VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
 #endif
 
             // No application name: nothing carries one across the ABI before the renderer has a create-info.
@@ -99,7 +129,18 @@ namespace Liara::Renderer
             // vkDestroyInstance emit, before and after the separate messenger exists.
 #ifdef LIARA_DEBUG
             const vk::DebugUtilsMessengerCreateInfoEXT messengerInfo = MessengerInfo();
-            createInfo.pNext = &messengerInfo;
+            const vk::Bool32 validateSync = vk::True;
+            const vk::LayerSettingEXT syncSetting(VALIDATION_LAYER,
+                                                  "validate_sync",
+                                                  vk::LayerSettingTypeEXT::eBool32,
+                                                  1,
+                                                  &validateSync);
+            const vk::LayerSettingsCreateInfoEXT layerSettings(syncSetting, &messengerInfo);
+            const vk::ValidationFeatureEnableEXT syncFeature =
+                vk::ValidationFeatureEnableEXT::eSynchronizationValidation;
+            const vk::ValidationFeaturesEXT validationFeatures(syncFeature, {}, &messengerInfo);
+            if (hasLayerSettings) { createInfo.pNext = &layerSettings; }
+            else { createInfo.pNext = &validationFeatures; }
 #endif
 
             try {
@@ -123,8 +164,8 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    Instance::Instance(const Loader& loader)
-        : m_Instance(CreateInstance(loader))
+    Instance::Instance(const Loader& loader, const liara_native_window_kind_t windowKind)
+        : m_Instance(CreateInstance(loader, windowKind))
         , m_Messenger(CreateMessenger(m_Instance)) {}
 
     const vk::raii::Instance& Instance::Get() const noexcept { return m_Instance; }

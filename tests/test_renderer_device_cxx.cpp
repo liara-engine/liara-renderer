@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 #include <doctest/doctest.h>
 
@@ -37,7 +38,7 @@ TEST_CASE("liara_renderer_create - three times in a row") {
     for (int i = 0; i < 3; ++i) {
         liara_renderer_handle_t* renderer = nullptr;
         REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
-        REQUIRE(renderer != nullptr);
+        REQUIRE_FALSE(renderer == nullptr);
         liara_renderer_destroy(renderer);
     }
 }
@@ -70,6 +71,17 @@ TEST_CASE("liara_renderer_submit_frame - forwards the console renderer's verdict
     drawable.x = 2.0F;
     CHECK(liara_renderer_submit_frame(renderer, &valid) == LIARA_RESULT_SUCCESS);
 
+    liara_renderer_destroy(renderer);
+}
+
+// Registered on its own (tests/CMakeLists.txt), since it expects the warning the main registration fails on.
+TEST_CASE("liara_renderer_create - a preferred GPU no device matches") {
+    liara_renderer_create_info_t info = NoWindowCreateInfo();
+    constexpr std::string_view NAME = "liara-no-such-gpu";
+    info.preferred_device_name = NAME.data();
+    info.preferred_device_name_length = NAME.size();
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&info, &renderer) == LIARA_RESULT_SUCCESS);
     liara_renderer_destroy(renderer);
 }
 
