@@ -1,7 +1,6 @@
 #include "Instance.h"
 
 #include "Loader.h"
-#include "Log.h"
 #include "Unsupported.h"
 
 #include "swapchain/Surface.h"
@@ -11,9 +10,15 @@
 
 #include <algorithm>
 #include <format>
-#include <string>
 #include <string_view>
 #include <vector>
+
+// The sink and std::string serve the validation messenger alone, which release builds compile out.
+#ifdef LIARA_DEBUG
+    #include "Log.h"
+
+    #include <string>
+#endif
 
 namespace Liara::Renderer
 {
@@ -123,7 +128,6 @@ namespace Liara::Renderer
                                                                       LIARA_RENDERER_MINOR_VERSION,
                                                                       LIARA_RENDERER_PATCH_VERSION),
                                                   VK_API_VERSION_1_3);
-            vk::InstanceCreateInfo createInfo({}, &application, layers, extensions);
 
             // Chained into the instance's own create-info, the messenger also reports what vkCreateInstance and
             // vkDestroyInstance emit, before and after the separate messenger exists.
@@ -139,9 +143,12 @@ namespace Liara::Renderer
             const vk::ValidationFeatureEnableEXT syncFeature =
                 vk::ValidationFeatureEnableEXT::eSynchronizationValidation;
             const vk::ValidationFeaturesEXT validationFeatures(syncFeature, {}, &messengerInfo);
-            if (hasLayerSettings) { createInfo.pNext = &layerSettings; }
-            else { createInfo.pNext = &validationFeatures; }
+            const void* const next = hasLayerSettings ? static_cast<const void*>(&layerSettings)
+                                                      : static_cast<const void*>(&validationFeatures);
+#else
+            const void* const next = nullptr;
 #endif
+            const vk::InstanceCreateInfo createInfo({}, &application, layers, extensions, next);
 
             try {
                 return {loader.GetContext(), createInfo};
