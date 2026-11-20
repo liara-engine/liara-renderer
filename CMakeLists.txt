@@ -8,8 +8,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
             "Remove the CMakeCache.txt and CMakeFiles/ this attempt just created before retrying.")
 endif()
 
-include(GNUInstallDirs)
-
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/.release-please-manifest.json" RELEASE_PLEASE_MANIFEST)
 string(JSON PROJECT_VERSION GET ${RELEASE_PLEASE_MANIFEST} ".")
 message(STATUS "LiaraRenderer version: ${PROJECT_VERSION}")
@@ -20,6 +18,7 @@ project(LiaraRenderer
         HOMEPAGE_URL "https://github.com/liara-engine/liara-renderer"
         LANGUAGES CXX
 )
+include(GNUInstallDirs)
 
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/include/liara/renderer/config.h.in"
@@ -81,6 +80,18 @@ target_compile_definitions(liara_renderer PRIVATE
         VK_NO_PROTOTYPES
         VMA_STATIC_VULKAN_FUNCTIONS=0
         VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
+
+# The window-system surface extensions. Defined for the whole target, never per file: these macros change the layout of
+# vk::raii's dispatchers, and two files seeing different definitions would disagree on it.
+if(WIN32)
+    target_compile_definitions(liara_renderer PRIVATE VK_USE_PLATFORM_WIN32_KHR NOMINMAX WIN32_LEAN_AND_MEAN)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # The X11 headers only: the renderer hands the host's Display* to Vulkan and never calls Xlib itself, so it must
+    # not link X11::X11. Wayland needs nothing, vulkan_wayland.h declaring the two types it uses.
+    find_package(X11 REQUIRED)
+    target_compile_definitions(liara_renderer PRIVATE VK_USE_PLATFORM_XLIB_KHR VK_USE_PLATFORM_WAYLAND_KHR)
+    target_include_directories(liara_renderer SYSTEM PRIVATE ${X11_INCLUDE_DIR})
+endif()
 
 target_include_directories(liara_renderer PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>

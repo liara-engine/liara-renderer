@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Log.h"
+
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
@@ -14,18 +16,24 @@ namespace Liara::Renderer
     class ConsoleRenderer
     {
     public:
-        ConsoleRenderer() = default;
+        /**
+         * @param holdLogs Hold the renderer's log lines while the grid covers the terminal, from the first frame until
+         *        destruction, so that a line written meanwhile is not overwritten by the next frame.
+         */
+        explicit ConsoleRenderer(const bool holdLogs = false)
+            : m_HoldLogs(holdLogs) {}
 
         /**
          * Leaves the terminal's alternate screen if a frame was ever drawn, so that whatever was written before the
-         * first frame (the host's output, the renderer's creation logs) is on screen again. A renderer that never drew
-         * writes nothing.
+         * first frame (the host's output, the renderer's creation logs) is on screen again, then writes the log lines
+         * held meanwhile. A renderer that never drew writes nothing.
          */
         ~ConsoleRenderer() {
             if (m_Initialized) {
                 std::cout << "\033[0m\033[?25h\033[?1049l";
                 std::cout.flush();
             }
+            if (m_Holding) { Log::Release(); }
         }
 
         ConsoleRenderer(const ConsoleRenderer&) = delete;
@@ -88,8 +96,15 @@ namespace Liara::Renderer
 
             // The first frame switches to the alternate screen (which starts blank) instead of clearing the main one,
             // the way less and vim do, so the main screen's content survives the demo. A later size change clears.
-            if (isFirstFrame) { std::cout << "\033[?1049h\033[?25l"; }
+            if (isFirstFrame) {
+                std::cout << "\033[?1049h\033[?25l";
+                if (m_HoldLogs) {
+                    Log::Hold();
+                    m_Holding = true;
+                }
+            }
             else { std::cout << "\033[2J"; }
+            m_StatusDirty = true;
         }
 
         /**
@@ -108,7 +123,22 @@ namespace Liara::Renderer
                               << "██\033[0m";
                 }
             }
+            WriteStatus();
             std::cout.flush();
+        }
+
+        /**
+         * Writes, on the line under the grid, how many warnings and errors the renderer has reported, so that a message
+         * held while the grid covers the terminal is visible as a count at once. Only when the counts changed, or the
+         * grid was (re)drawn from scratch.
+         */
+        void WriteStatus() {
+            const Log::Counts counts = Log::GetCounts();
+            if (!m_StatusDirty && counts == m_StatusCounts) { return; }
+            m_StatusDirty = false;
+            m_StatusCounts = counts;
+            std::cout << "\033[" << (m_Height + 1) << ";1H\033[0mrenderer: " << counts.m_Warnings << " warnings, "
+                      << counts.m_Errors << " errors" << (m_Holding ? " (shown on exit)" : "") << "\033[K";
         }
 
         /**
@@ -124,6 +154,10 @@ namespace Liara::Renderer
                    + ";" + std::to_string(color & 0xFFU) + "m";
         }
 
+        bool m_HoldLogs = false;
+        bool m_Holding = false;
+        bool m_StatusDirty = true;
+        Log::Counts m_StatusCounts;
         bool m_Initialized = false;
         uint16_t m_Width = 0;
         uint16_t m_Height = 0;
