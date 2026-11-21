@@ -86,6 +86,18 @@ target_link_libraries(test_renderer_mesh_data_cxx PRIVATE
 add_test(NAME test_renderer_mesh_data_cxx COMMAND test_renderer_mesh_data_cxx)
 set_tests_properties(test_renderer_mesh_data_cxx PROPERTIES LABELS "unit")
 
+# The embedded shaders alone: Shaders.cpp compiled in with the SPIR-V the build generates. No GPU, so it runs in CI.
+add_executable(test_renderer_shaders_cxx
+        test_renderer_shaders_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/pipelines/Shaders.cpp)
+target_include_directories(test_renderer_shaders_cxx PRIVATE
+        ${LiaraRenderer_SOURCE_DIR}/src
+        ${LiaraRenderer_BINARY_DIR}/generated)
+add_dependencies(test_renderer_shaders_cxx liara_renderer_shaders)
+target_link_libraries(test_renderer_shaders_cxx PRIVATE doctest::doctest)
+add_test(NAME test_renderer_shaders_cxx COMMAND test_renderer_shaders_cxx)
+set_tests_properties(test_renderer_shaders_cxx PROPERTIES LABELS "unit")
+
 # Creation refused for want of a driver: no GPU needed, so `unit`, and it runs in CI, where there is not even a loader.
 # The renderer logs an error line on purpose here, so there is no FAIL_REGULAR_EXPRESSION.
 add_executable(test_renderer_no_driver_cxx test_renderer_no_driver_cxx.cpp)

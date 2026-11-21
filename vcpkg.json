@@ -6,7 +6,11 @@
   "license": "MIT",
   "dependencies": [
     "vulkan-headers",
-    "vulkan-memory-allocator"
+    "vulkan-memory-allocator",
+    {
+      "name": "shaderc",
+      "host": true
+    }
   ],
   "features": {
     "tests": {

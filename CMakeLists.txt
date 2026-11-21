@@ -41,6 +41,39 @@ endif()
 find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
+# The pinned glslc, built by vcpkg from the shaderc host dependency (ADR 0017). Never a glslc from the PATH, whose
+# version nobody chose: the shaders are compiled by the same compiler on every machine and every CI leg. The presets
+# leave VCPKG_HOST_TRIPLET to vcpkg's default, which CMake then does not see, so the installed triplets are searched.
+if(VCPKG_HOST_TRIPLET)
+    set(LIARA_GLSLC_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/shaderc")
+else()
+    file(GLOB LIARA_GLSLC_DIRS LIST_DIRECTORIES true "${VCPKG_INSTALLED_DIR}/*/tools/shaderc")
+endif()
+find_program(LIARA_GLSLC glslc PATHS ${LIARA_GLSLC_DIRS} NO_DEFAULT_PATH)
+if(NOT LIARA_GLSLC)
+    message(FATAL_ERROR "glslc was not found in vcpkg's host tools (${VCPKG_INSTALLED_DIR}/<host triplet>/tools/"
+                        "shaderc). It comes from the shaderc port in vcpkg.json; re-run ./scripts/liara.sh setup.")
+endif()
+message(STATUS "LiaraRenderer glslc: ${LIARA_GLSLC}")
+
+# Each shader becomes generated/shaders/<name>.inc, glslc's `-mfmt=c` output: the SPIR-V words as a braced initializer
+# list, which src/pipelines/Shaders.cpp includes into an array. Debug keeps the source for RenderDoc.
+set(LIARA_RENDERER_SHADERS mesh.vert mesh.frag)
+set(LIARA_RENDERER_SHADER_OUTPUTS "")
+foreach(shader IN LISTS LIARA_RENDERER_SHADERS)
+    set(shader_source "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}")
+    set(shader_output "${CMAKE_CURRENT_BINARY_DIR}/generated/shaders/${shader}.inc")
+    add_custom_command(
+            OUTPUT "${shader_output}"
+            COMMAND "${LIARA_GLSLC}" --target-env=vulkan1.3 -Werror -mfmt=c $<IF:$<CONFIG:Debug>,-g,-O>
+                    -o "${shader_output}" "${shader_source}"
+            DEPENDS "${shader_source}"
+            COMMENT "Compiling shader ${shader}"
+            VERBATIM)
+    list(APPEND LIARA_RENDERER_SHADER_OUTPUTS "${shader_output}")
+endforeach()
+add_custom_target(liara_renderer_shaders DEPENDS ${LIARA_RENDERER_SHADER_OUTPUTS})
+
 if(PROJECT_IS_TOP_LEVEL)
     set(LIARA_RENDERER_IS_TOP_LEVEL ON)
 else()
@@ -68,6 +101,7 @@ add_library(liara_renderer ${LIARA_RENDERER_SOURCES})
 add_library(Liara::Renderer ALIAS liara_renderer)
 
 liara_configure_target(liara_renderer)
+add_dependencies(liara_renderer liara_renderer_shaders)
 
 target_link_libraries(liara_renderer PUBLIC Liara::Interfaces)
 
