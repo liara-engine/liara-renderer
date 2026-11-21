@@ -86,6 +86,17 @@ target_link_libraries(test_renderer_packet_cxx PRIVATE
 add_test(NAME test_renderer_packet_cxx COMMAND test_renderer_packet_cxx)
 set_tests_properties(test_renderer_packet_cxx PROPERTIES LABELS "unit")
 
+# The checks an upload makes on its data, compiled in like the selection policy above.
+add_executable(test_renderer_mesh_data_cxx
+        test_renderer_mesh_data_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/mesh/MeshData.cpp)
+target_include_directories(test_renderer_mesh_data_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src)
+target_link_libraries(test_renderer_mesh_data_cxx PRIVATE
+        Liara::Interfaces
+        doctest::doctest)
+add_test(NAME test_renderer_mesh_data_cxx COMMAND test_renderer_mesh_data_cxx)
+set_tests_properties(test_renderer_mesh_data_cxx PROPERTIES LABELS "unit")
+
 # Creation refused for want of a driver: no GPU needed, so `unit`, and it runs in CI, where there is not even a loader.
 # The renderer logs an error line on purpose here, so there is no FAIL_REGULAR_EXPRESSION.
 add_executable(test_renderer_no_driver_cxx test_renderer_no_driver_cxx.cpp)
