@@ -47,5 +47,5 @@ namespace Liara::Renderer
      * The packet's colours are sRGB-encoded. An sRGB image expects linear values and encodes them itself, so each
      * channel is decoded first; any other format takes the encoded value as is.
      */
-    [[nodiscard]] std::array<float, 4> ClearColorFromPacket(uint32_t argb, bool srgbFormat) noexcept;
+    [[nodiscard]] std::array<float, 4> LinearColorFromArgb(uint32_t argb, bool srgbFormat) noexcept;
 }  // namespace Liara::Renderer

@@ -3,12 +3,14 @@
 #include "TestCreateInfo.h"
 
 #include <liara/extent.h>
+#include <liara/mesh.h>
 #include <liara/modules.h>
 #include <liara/native_window.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -143,18 +145,33 @@ TEST_CASE("liara_renderer_create - a window with no area") {
 TEST_CASE("liara_renderer_destroy - a null handle is a no-op") { liara_renderer_destroy(nullptr); }
 
 TEST_CASE("liara_renderer_submit_frame - null renderer") {
-    const liara_render_drawable_t drawable {.x = 0.0F, .y = 0.0F, .color = 0xFFFFFFFFU};
     const liara_render_packet_t packet {
         .struct_version = LIARA_RENDER_PACKET_VERSION,
-        .grid_width = 4,
-        .grid_height = 4,
-        .background_color = 0xFF000000U,
-        .drawables = &drawable,
-        .drawable_count = 1,
+        .reserved = 0,
+        .views = nullptr,
+        .view_count = 0,
     };
 
     const liara_result_t result = liara_renderer_submit_frame(nullptr, &packet);
     CHECK(result == LIARA_RESULT_NULL_POINTER);
+}
+
+TEST_CASE("liara_renderer_mesh_upload - null renderer") {
+    constexpr std::array<float, 9> POSITIONS {0.0F, 0.5F, 0.0F, 0.5F, -0.5F, 0.0F, -0.5F, -0.5F, 0.0F};
+    const liara_mesh_data_t data {
+        .struct_version = LIARA_MESH_DATA_VERSION,
+        .reserved = 0,
+        .positions = POSITIONS.data(),
+        .colors = nullptr,
+        .vertex_count = 3,
+        .indices = nullptr,
+        .index_count = 0,
+    };
+    CHECK(liara_renderer_mesh_upload(nullptr, 1, &data) == LIARA_RESULT_NULL_POINTER);
+}
+
+TEST_CASE("liara_renderer_mesh_release - null renderer") {
+    CHECK(liara_renderer_mesh_release(nullptr, 1) == LIARA_RESULT_NULL_POINTER);
 }
 
 // NOLINTEND(readability-identifier-naming)

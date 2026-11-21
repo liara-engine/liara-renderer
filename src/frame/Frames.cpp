@@ -1,11 +1,15 @@
 #include "Frames.h"
 
 #include "device/Device.h"
+#include "passes/ViewPass.h"
 #include "swapchain/PresentStatus.h"
 #include "swapchain/Swapchain.h"
+#include "swapchain/SwapchainChoices.h"
 
-#include <array>
+#include <liara/renderer/packet.h>
+
 #include <cstdint>
+#include <span>
 #include <utility>
 
 namespace Liara::Renderer
@@ -52,7 +56,7 @@ namespace Liara::Renderer
         }
     }
 
-    PresentStatus Frames::Draw(const std::array<float, 4>& clearColor) {
+    PresentStatus Frames::Draw(const liara_render_packet_t& packet) {
         const Frame& frame = m_Frames.at(m_Current);
         const vk::raii::Device& device = m_Device->Get();
 
@@ -67,7 +71,7 @@ namespace Liara::Renderer
         // next wait on this frame would block forever.
         device.resetFences(*frame.m_InFlight);
 
-        Record(frame, imageIndex, clearColor);
+        Record(frame, imageIndex, packet);
 
         const vk::SemaphoreSubmitInfo wait(*frame.m_ImageAcquired,
                                            0,
@@ -84,7 +88,7 @@ namespace Liara::Renderer
         return m_Swapchain->Present(m_Device->GetQueue(), imageIndex);
     }
 
-    void Frames::Record(const Frame& frame, const uint32_t imageIndex, const std::array<float, 4>& clearColor) const {
+    void Frames::Record(const Frame& frame, const uint32_t imageIndex, const liara_render_packet_t& packet) {
         const vk::raii::CommandBuffer& commands = frame.m_Commands;
         const vk::Image image = m_Swapchain->GetImage(imageIndex);
         using Stage = vk::PipelineStageFlagBits2;
@@ -104,16 +108,11 @@ namespace Liara::Renderer
                                                                 vk::ImageLayout::eColorAttachmentOptimal);
         commands.pipelineBarrier2(vk::DependencyInfo({}, {}, {}, toAttachment));
 
-        const vk::RenderingAttachmentInfo attachment(*m_Swapchain->GetView(imageIndex),
-                                                     vk::ImageLayout::eColorAttachmentOptimal,
-                                                     vk::ResolveModeFlagBits::eNone,
-                                                     {},
-                                                     vk::ImageLayout::eUndefined,
-                                                     vk::AttachmentLoadOp::eClear,
-                                                     vk::AttachmentStoreOp::eStore,
-                                                     vk::ClearValue(vk::ClearColorValue(clearColor)));
-        commands.beginRendering(vk::RenderingInfo({}, vk::Rect2D({0, 0}, m_Swapchain->GetExtent()), 1, 0, attachment));
-        commands.endRendering();
+        m_Pass.Record(commands,
+                      m_Swapchain->GetView(imageIndex),
+                      m_Swapchain->GetExtent(),
+                      IsSrgbFormat(m_Swapchain->GetFormat()),
+                      std::span(packet.views, packet.view_count));
 
         const vk::ImageMemoryBarrier2 toPresent = Transition(image,
                                                              Stage::eColorAttachmentOutput,

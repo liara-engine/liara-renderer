@@ -6,8 +6,6 @@
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
-#include <cstddef>
-#include <cstdint>
 #include <string_view>
 
 #include <doctest/doctest.h>
@@ -16,23 +14,6 @@
 // `gpu` label and CI does not run it. CTest also fails it on any `[liara-renderer] warning:` or `error:` line in its
 // output (FAIL_REGULAR_EXPRESSION in tests/CMakeLists.txt), which is how a validation message fails the run even when
 // every CHECK passed. In a Release build the validation layer is off, and these tests only check that creation works.
-
-namespace
-{
-    constexpr liara_render_packet_t Packet(const uint16_t width,
-                                           const uint16_t height,
-                                           const liara_render_drawable_t* drawables,
-                                           const size_t count) {
-        return {
-            .struct_version = LIARA_RENDER_PACKET_VERSION,
-            .grid_width = width,
-            .grid_height = height,
-            .background_color = 0xFF000000U,
-            .drawables = drawables,
-            .drawable_count = count,
-        };
-    }
-}  // namespace
 
 TEST_CASE("liara_renderer_create - three times in a row") {
     for (int i = 0; i < 3; ++i) {
@@ -53,23 +34,32 @@ TEST_CASE("liara_renderer_create - two renderers alive at once") {
     liara_renderer_destroy(second);
 }
 
-TEST_CASE("liara_renderer_submit_frame - forwards the console renderer's verdicts") {
+TEST_CASE("liara_renderer_submit_frame - checks the packet, then draws nothing without a window") {
     liara_renderer_handle_t* renderer = nullptr;
     REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
 
+    const liara_render_drawable_t drawable {.mesh = 1};
+    liara_render_view_t view {
+        .target = LIARA_RENDER_TARGET_WINDOW,
+        .viewport = {.x = 0.0F, .y = 0.0F, .width = 1.0F, .height = 1.0F},
+        .clear_color = 0xFF1A2440U,
+        .reserved = 0,
+        .drawables = &drawable,
+        .drawable_count = 1,
+    };
+    liara_render_packet_t packet {
+        .struct_version = LIARA_RENDER_PACKET_VERSION,
+        .reserved = 0,
+        .views = &view,
+        .view_count = 1,
+    };
+
     CHECK(liara_renderer_submit_frame(renderer, nullptr) == LIARA_RESULT_NULL_POINTER);
-
-    const liara_render_packet_t zeroWidth = Packet(0, 4, nullptr, 0);
-    CHECK(liara_renderer_submit_frame(renderer, &zeroWidth) == LIARA_RESULT_INVALID_ARGUMENT);
-
-    const liara_render_packet_t nullDrawables = Packet(4, 4, nullptr, 1);
-    CHECK(liara_renderer_submit_frame(renderer, &nullDrawables) == LIARA_RESULT_NULL_POINTER);
-
-    liara_render_drawable_t drawable {.x = 1.0F, .y = 1.0F, .color = 0xFFFF0000U};
-    const liara_render_packet_t valid = Packet(4, 4, &drawable, 1);
-    CHECK(liara_renderer_submit_frame(renderer, &valid) == LIARA_RESULT_SUCCESS);
-    drawable.x = 2.0F;
-    CHECK(liara_renderer_submit_frame(renderer, &valid) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_SUCCESS);
+    view.target = LIARA_RENDER_TARGET_NONE;
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_INVALID_ARGUMENT);
+    packet.struct_version = 1;
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_VERSION_MISMATCH);
 
     liara_renderer_destroy(renderer);
 }
