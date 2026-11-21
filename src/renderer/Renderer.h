@@ -22,6 +22,7 @@ namespace Liara::Renderer
     class Instance;
     class Loader;
     class Meshes;
+    class MeshPipeline;
     class Surface;
     class Swapchain;
 
@@ -60,8 +61,9 @@ namespace Liara::Renderer
         std::unique_ptr<Device> m_Device;
         std::unique_ptr<Allocator> m_Allocator;
         std::unique_ptr<Meshes> m_Meshes;
-        std::unique_ptr<Swapchain> m_Swapchain; /**< Null for a renderer without a window. */
-        std::unique_ptr<Frames> m_Frames;       /**< Null for a renderer without a window. */
+        std::unique_ptr<Swapchain> m_Swapchain;   /**< Null for a renderer without a window. */
+        std::unique_ptr<MeshPipeline> m_Pipeline; /**< Null for a renderer without a window. */
+        std::unique_ptr<Frames> m_Frames;         /**< Null for a renderer without a window. */
         PresentStatus m_PresentStatus = PresentStatus::Ok;
     };
 }  // namespace Liara::Renderer

@@ -37,6 +37,19 @@ set_tests_properties(test_renderer_device_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
 
+# The view pass proven by pixels: a device without a surface draws into an offscreen image, read back. It links the
+# renderer's internals (liara_renderer_objects), since the ABI has no offscreen target; that needs a GPU, so `gpu`. Any
+# warning or error line fails it, validation messages included.
+add_executable(test_renderer_draw_cxx test_renderer_draw_cxx.cpp)
+target_include_directories(test_renderer_draw_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_renderer_draw_cxx PRIVATE
+        liara_renderer_objects
+        doctest::doctest)
+add_test(NAME test_renderer_draw_cxx COMMAND test_renderer_draw_cxx)
+set_tests_properties(test_renderer_draw_cxx PROPERTIES
+        LABELS "gpu"
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
 # The device selection policy alone, without a GPU: the source is compiled into the test, which links no renderer, so
 # the same code is tested under every preset with no duplicate symbol and no export needed.
 find_package(VulkanHeaders CONFIG REQUIRED)

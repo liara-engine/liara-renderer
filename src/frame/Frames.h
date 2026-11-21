@@ -17,6 +17,8 @@
 namespace Liara::Renderer
 {
     class Device;
+    class Meshes;
+    class MeshPipeline;
     class Swapchain;
 
     /** @brief How many frames the CPU records while the GPU still works on earlier ones. */
@@ -32,8 +34,8 @@ namespace Liara::Renderer
     class Frames
     {
     public:
-        /** @param device, swapchain Both outlive this object. */
-        Frames(const Device& device, Swapchain& swapchain);
+        /** @param device, swapchain, meshes, pipeline All outlive this object; the pipeline matches the swapchain. */
+        Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes, const MeshPipeline& pipeline);
         ~Frames() = default;
 
         Frames(const Frames&) = delete;

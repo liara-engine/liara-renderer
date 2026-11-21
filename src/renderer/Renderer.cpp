@@ -10,6 +10,7 @@
 #include "frame/Frames.h"
 #include "mesh/Meshes.h"
 #include "packet/Packet.h"
+#include "pipelines/MeshPipeline.h"
 #include "swapchain/PresentStatus.h"
 #include "swapchain/Surface.h"
 #include "swapchain/Swapchain.h"
@@ -40,7 +41,8 @@ namespace Liara::Renderer
         , m_Meshes(std::make_unique<Meshes>(*m_Device, *m_Allocator))
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
-        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain) : nullptr) {}
+        , m_Pipeline(m_Swapchain ? std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat()) : nullptr)
+        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr) {}
 
     Renderer::~Renderer() {
         // Frames may still be in flight; nothing they use can go before the GPU is done with it.

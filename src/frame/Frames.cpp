@@ -38,9 +38,10 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    Frames::Frames(const Device& device, Swapchain& swapchain)
+    Frames::Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes, const MeshPipeline& pipeline)
         : m_Device(&device)
-        , m_Swapchain(&swapchain) {
+        , m_Swapchain(&swapchain)
+        , m_Pass(meshes, pipeline) {
         vk::raii::CommandBuffers commands(device.Get(),
                                           vk::CommandBufferAllocateInfo(*device.GetCommandPool(),
                                                                         vk::CommandBufferLevel::ePrimary,
