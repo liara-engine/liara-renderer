@@ -14,7 +14,7 @@ set_tests_properties(test_renderer_functions_cxx PROPERTIES
 
 
 
-# The log sink alone, compiled into the test like the console renderer above: no instance, no GPU.
+# The log sink alone, compiled into the test: no instance, no GPU.
 add_executable(test_renderer_log_cxx
         test_renderer_log_cxx.cpp
         ${LiaraRenderer_SOURCE_DIR}/src/Log.cpp)
