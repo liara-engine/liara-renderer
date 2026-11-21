@@ -31,7 +31,8 @@ target_link_libraries(test_renderer_device_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
         doctest::doctest)
-add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx "--test-case-exclude=*no device matches*")
+add_test(NAME test_renderer_device_cxx
+        COMMAND test_renderer_device_cxx "--test-case-exclude=*no device matches*,*left uploaded*")
 set_tests_properties(test_renderer_device_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
@@ -127,6 +128,14 @@ add_test(NAME test_renderer_device_preference_cxx COMMAND test_renderer_device_c
 set_tests_properties(test_renderer_device_preference_cxx PROPERTIES
         LABELS "gpu"
         PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] warning: no GPU name contains \"liara-no-such-gpu\""
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] error:|Status: FAILURE")
+
+# The same binary, one case: a renderer destroyed with a mesh never released. It frees the mesh and says how many it
+# found, which is what this registration requires and what the main one would fail on.
+add_test(NAME test_renderer_device_leftover_mesh_cxx COMMAND test_renderer_device_cxx "--test-case=*left uploaded*")
+set_tests_properties(test_renderer_device_leftover_mesh_cxx PROPERTIES
+        LABELS "gpu"
+        PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] warning: meshes never released before destruction: 1"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] error:|Status: FAILURE")
 
 # The same refusal must say what is missing, so that the person reading it knows what to install: a missing loader on a

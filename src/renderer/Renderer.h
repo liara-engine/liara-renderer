@@ -8,6 +8,7 @@
 
 #include "../swapchain/PresentStatus.h"
 
+#include <liara/mesh.h>
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
@@ -20,6 +21,7 @@ namespace Liara::Renderer
     class Frames;
     class Instance;
     class Loader;
+    class Meshes;
     class Surface;
     class Swapchain;
 
@@ -44,6 +46,12 @@ namespace Liara::Renderer
          */
         [[nodiscard]] liara_result_t SubmitFrame(const liara_render_packet_t& packet);
 
+        /** @brief Put a mesh on the GPU; see `Meshes::Upload`. Call only once its data passed `ValidateMeshData`. */
+        [[nodiscard]] liara_result_t UploadMesh(liara_mesh_id_t mesh, const liara_mesh_data_t& data);
+
+        /** @brief Free a mesh once the GPU is idle; see `Meshes::Release`. */
+        [[nodiscard]] liara_result_t ReleaseMesh(liara_mesh_id_t mesh);
+
     private:
         // Destroyed in reverse order, from the most derived Vulkan object to the loader.
         std::unique_ptr<Loader> m_Loader;
@@ -51,6 +59,7 @@ namespace Liara::Renderer
         std::unique_ptr<Surface> m_Surface; /**< Null for a renderer without a window. */
         std::unique_ptr<Device> m_Device;
         std::unique_ptr<Allocator> m_Allocator;
+        std::unique_ptr<Meshes> m_Meshes;
         std::unique_ptr<Swapchain> m_Swapchain; /**< Null for a renderer without a window. */
         std::unique_ptr<Frames> m_Frames;       /**< Null for a renderer without a window. */
         PresentStatus m_PresentStatus = PresentStatus::Ok;

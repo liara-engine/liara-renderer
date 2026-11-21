@@ -32,4 +32,6 @@ namespace Liara::Renderer
     }
 
     Allocator::~Allocator() { vmaDestroyAllocator(m_Allocator); }
+
+    VmaAllocator_T* Allocator::Get() const noexcept { return m_Allocator; }
 }  // namespace Liara::Renderer

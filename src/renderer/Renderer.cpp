@@ -8,16 +8,20 @@
 #include "device/Instance.h"
 #include "device/Loader.h"
 #include "frame/Frames.h"
+#include "mesh/Meshes.h"
 #include "packet/Packet.h"
 #include "swapchain/PresentStatus.h"
 #include "swapchain/Surface.h"
 #include "swapchain/Swapchain.h"
 
+#include <liara/mesh.h>
 #include <liara/native_window.h>
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
+#include <cstddef>
 #include <exception>
+#include <format>
 #include <memory>
 #include <string>
 
@@ -33,6 +37,7 @@ namespace Liara::Renderer
                                             m_Surface ? &m_Surface->Get() : nullptr,
                                             config.m_PreferredDeviceName))
         , m_Allocator(std::make_unique<Allocator>(*m_Loader, *m_Instance, *m_Device))
+        , m_Meshes(std::make_unique<Meshes>(*m_Device, *m_Allocator))
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
         , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain) : nullptr) {}
@@ -45,7 +50,22 @@ namespace Liara::Renderer
         catch (const std::exception& error) {
             Log::Error(std::string("waiting for the GPU before destruction failed: ").append(error.what()));
         }
+        // Freed with the renderer either way; saying how many is what lets a host find the release it forgot.
+        if (const std::size_t left = m_Meshes->Count(); left > 0) {
+            try {
+                Log::Warning(std::format("meshes never released before destruction: {}", left));
+            }
+            catch (...) {
+                Log::Warning("meshes never released before destruction");
+            }
+        }
     }
+
+    liara_result_t Renderer::UploadMesh(const liara_mesh_id_t mesh, const liara_mesh_data_t& data) {
+        return m_Meshes->Upload(mesh, data);
+    }
+
+    liara_result_t Renderer::ReleaseMesh(const liara_mesh_id_t mesh) { return m_Meshes->Release(mesh); }
 
     liara_result_t Renderer::SubmitFrame(const liara_render_packet_t& packet) {
         if (const liara_result_t checked = ValidatePacket(packet); checked != LIARA_RESULT_SUCCESS) { return checked; }
