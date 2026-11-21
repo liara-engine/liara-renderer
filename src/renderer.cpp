@@ -2,9 +2,11 @@
 
 #include "Errors.h"
 
+#include "mesh/MeshData.h"
 #include "renderer/CreateInfo.h"
 
 #include <liara/abi_version.h>
+#include <liara/mesh.h>
 #include <liara/modules.h>
 #include <liara/renderer/config.h>
 #include <liara/renderer/packet.h>
@@ -73,9 +75,41 @@ liara_result_t liara_renderer_submit_frame(liara_renderer_handle_t* renderer, co
     // NOLINTEND(readability-identifier-naming)
     if (renderer == nullptr || packet == nullptr) { return LIARA_RESULT_NULL_POINTER; }
 
-    // The console renderer allocates its frame, so this can throw too.
+    // Recording and presenting call Vulkan, whose errors arrive as exceptions; none unwinds through the ABI.
     try {
         return renderer->m_Impl.SubmitFrame(*packet);
+    }
+    catch (...) {
+        return Liara::Renderer::ResultFromCurrentException();
+    }
+}
+
+// NOLINTBEGIN(readability-identifier-naming)
+liara_result_t liara_renderer_mesh_upload(liara_renderer_handle_t* renderer,
+                                          liara_mesh_id_t mesh,
+                                          const liara_mesh_data_t* data) {
+    // NOLINTEND(readability-identifier-naming)
+    if (renderer == nullptr || data == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+    if (const liara_result_t checked = Liara::Renderer::ValidateMeshData(mesh, *data);
+        checked != LIARA_RESULT_SUCCESS) {
+        return checked;
+    }
+    // The upload calls Vulkan, whose errors arrive as exceptions; none unwinds through the ABI.
+    try {
+        return renderer->m_Impl.UploadMesh(mesh, *data);
+    }
+    catch (...) {
+        return Liara::Renderer::ResultFromCurrentException();
+    }
+}
+
+// NOLINTBEGIN(readability-identifier-naming)
+liara_result_t liara_renderer_mesh_release(liara_renderer_handle_t* renderer, liara_mesh_id_t mesh) {
+    // NOLINTEND(readability-identifier-naming)
+    if (renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+    if (mesh == LIARA_MESH_ID_NONE) { return LIARA_RESULT_INVALID_ARGUMENT; }
+    try {
+        return renderer->m_Impl.ReleaseMesh(mesh);
     }
     catch (...) {
         return Liara::Renderer::ResultFromCurrentException();

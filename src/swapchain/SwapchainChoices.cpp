@@ -73,7 +73,7 @@ namespace Liara::Renderer
         return std::ranges::find(PREFERRED_FORMATS, format) != PREFERRED_FORMATS.end();
     }
 
-    std::array<float, 4> ClearColorFromPacket(const uint32_t argb, const bool srgbFormat) noexcept {
+    std::array<float, 4> LinearColorFromArgb(const uint32_t argb, const bool srgbFormat) noexcept {
         std::array<float, 4> color {Channel(argb, RED_SHIFT), Channel(argb, GREEN_SHIFT), Channel(argb, 0), 1.0F};
         if (srgbFormat) {
             for (size_t channel = 0; channel < COLOUR_CHANNELS; ++channel) {

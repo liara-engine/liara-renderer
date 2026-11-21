@@ -3,22 +3,26 @@
 #include "CreateInfo.h"
 #include "Log.h"
 
-#include "console/Terminal.h"
 #include "device/Allocator.h"
 #include "device/Device.h"
 #include "device/Instance.h"
 #include "device/Loader.h"
 #include "frame/Frames.h"
+#include "mesh/Meshes.h"
+#include "packet/Packet.h"
+#include "pipelines/MeshPipeline.h"
 #include "swapchain/PresentStatus.h"
 #include "swapchain/Surface.h"
 #include "swapchain/Swapchain.h"
-#include "swapchain/SwapchainChoices.h"
 
+#include <liara/mesh.h>
 #include <liara/native_window.h>
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
+#include <cstddef>
 #include <exception>
+#include <format>
 #include <memory>
 #include <string>
 
@@ -34,10 +38,11 @@ namespace Liara::Renderer
                                             m_Surface ? &m_Surface->Get() : nullptr,
                                             config.m_PreferredDeviceName))
         , m_Allocator(std::make_unique<Allocator>(*m_Loader, *m_Instance, *m_Device))
+        , m_Meshes(std::make_unique<Meshes>(*m_Device, *m_Allocator))
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
-        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain) : nullptr)
-        , m_Console(StandardStreamsAreTerminals()) {}
+        , m_Pipeline(m_Swapchain ? std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat()) : nullptr)
+        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr) {}
 
     Renderer::~Renderer() {
         // Frames may still be in flight; nothing they use can go before the GPU is done with it.
@@ -47,16 +52,30 @@ namespace Liara::Renderer
         catch (const std::exception& error) {
             Log::Error(std::string("waiting for the GPU before destruction failed: ").append(error.what()));
         }
+        // Freed with the renderer either way; saying how many is what lets a host find the release it forgot.
+        if (const std::size_t left = m_Meshes->Count(); left > 0) {
+            try {
+                Log::Warning(std::format("meshes never released before destruction: {}", left));
+            }
+            catch (...) {
+                Log::Warning("meshes never released before destruction");
+            }
+        }
     }
 
+    liara_result_t Renderer::UploadMesh(const liara_mesh_id_t mesh, const liara_mesh_data_t& data) {
+        return m_Meshes->Upload(mesh, data);
+    }
+
+    liara_result_t Renderer::ReleaseMesh(const liara_mesh_id_t mesh) { return m_Meshes->Release(mesh); }
+
     liara_result_t Renderer::SubmitFrame(const liara_render_packet_t& packet) {
-        if (const liara_result_t drawn = m_Console.SubmitFrame(packet); drawn != LIARA_RESULT_SUCCESS) { return drawn; }
+        if (const liara_result_t checked = ValidatePacket(packet); checked != LIARA_RESULT_SUCCESS) { return checked; }
         if (!m_Frames) { return LIARA_RESULT_SUCCESS; }
 
         // Sticky until a later stage recreates the swapchain, which also keeps the log line below to one.
         if (m_PresentStatus == PresentStatus::Ok) {
-            m_PresentStatus =
-                m_Frames->Draw(ClearColorFromPacket(packet.background_color, IsSrgbFormat(m_Swapchain->GetFormat())));
+            m_PresentStatus = m_Frames->Draw(packet);
             if (m_PresentStatus == PresentStatus::OutOfDate) {
                 Log::Info("swapchain out of date; resizing is handled from stage 6");
             }

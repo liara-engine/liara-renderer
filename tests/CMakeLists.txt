@@ -14,19 +14,7 @@ set_tests_properties(test_renderer_functions_cxx PROPERTIES
 
 
 
-# The console renderer is private and header-only: the test includes it from src/ and links no renderer, so it needs
-# no instance and no GPU.
-add_executable(test_renderer_console_cxx
-        test_renderer_console_cxx.cpp
-        ${LiaraRenderer_SOURCE_DIR}/src/Log.cpp)
-target_include_directories(test_renderer_console_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(test_renderer_console_cxx PRIVATE
-        Liara::Interfaces
-        doctest::doctest)
-add_test(NAME test_renderer_console_cxx COMMAND test_renderer_console_cxx)
-set_tests_properties(test_renderer_console_cxx PROPERTIES LABELS "unit")
-
-# The log sink alone, compiled into the test like the console renderer above: no instance, no GPU.
+# The log sink alone, compiled into the test: no instance, no GPU.
 add_executable(test_renderer_log_cxx
         test_renderer_log_cxx.cpp
         ${LiaraRenderer_SOURCE_DIR}/src/Log.cpp)
@@ -43,8 +31,22 @@ target_link_libraries(test_renderer_device_cxx PRIVATE
         Liara::Interfaces
         Liara::Renderer
         doctest::doctest)
-add_test(NAME test_renderer_device_cxx COMMAND test_renderer_device_cxx "--test-case-exclude=*no device matches*")
+add_test(NAME test_renderer_device_cxx
+        COMMAND test_renderer_device_cxx "--test-case-exclude=*no device matches*,*left uploaded*")
 set_tests_properties(test_renderer_device_cxx PROPERTIES
+        LABELS "gpu"
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
+# The view pass proven by pixels: a device without a surface draws into an offscreen image, read back. It links the
+# renderer's internals (liara_renderer_objects), since the ABI has no offscreen target; that needs a GPU, so `gpu`. Any
+# warning or error line fails it, validation messages included.
+add_executable(test_renderer_draw_cxx test_renderer_draw_cxx.cpp)
+target_include_directories(test_renderer_draw_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_renderer_draw_cxx PRIVATE
+        liara_renderer_objects
+        doctest::doctest)
+add_test(NAME test_renderer_draw_cxx COMMAND test_renderer_draw_cxx)
+set_tests_properties(test_renderer_draw_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
 
@@ -74,6 +76,40 @@ target_link_libraries(test_renderer_swapchain_choices_cxx PRIVATE
         doctest::doctest)
 add_test(NAME test_renderer_swapchain_choices_cxx COMMAND test_renderer_swapchain_choices_cxx)
 set_tests_properties(test_renderer_swapchain_choices_cxx PROPERTIES LABELS "unit")
+
+# The packet checks and the viewport conversion alone, compiled in like the selection policy above.
+add_executable(test_renderer_packet_cxx
+        test_renderer_packet_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/packet/Packet.cpp)
+target_include_directories(test_renderer_packet_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src)
+target_link_libraries(test_renderer_packet_cxx PRIVATE
+        Liara::Interfaces
+        doctest::doctest)
+add_test(NAME test_renderer_packet_cxx COMMAND test_renderer_packet_cxx)
+set_tests_properties(test_renderer_packet_cxx PROPERTIES LABELS "unit")
+
+# The checks an upload makes on its data, compiled in like the selection policy above.
+add_executable(test_renderer_mesh_data_cxx
+        test_renderer_mesh_data_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/mesh/MeshData.cpp)
+target_include_directories(test_renderer_mesh_data_cxx PRIVATE ${LiaraRenderer_SOURCE_DIR}/src)
+target_link_libraries(test_renderer_mesh_data_cxx PRIVATE
+        Liara::Interfaces
+        doctest::doctest)
+add_test(NAME test_renderer_mesh_data_cxx COMMAND test_renderer_mesh_data_cxx)
+set_tests_properties(test_renderer_mesh_data_cxx PROPERTIES LABELS "unit")
+
+# The embedded shaders alone: Shaders.cpp compiled in with the SPIR-V the build generates. No GPU, so it runs in CI.
+add_executable(test_renderer_shaders_cxx
+        test_renderer_shaders_cxx.cpp
+        ${LiaraRenderer_SOURCE_DIR}/src/pipelines/Shaders.cpp)
+target_include_directories(test_renderer_shaders_cxx PRIVATE
+        ${LiaraRenderer_SOURCE_DIR}/src
+        ${LiaraRenderer_BINARY_DIR}/generated)
+add_dependencies(test_renderer_shaders_cxx liara_renderer_shaders)
+target_link_libraries(test_renderer_shaders_cxx PRIVATE doctest::doctest)
+add_test(NAME test_renderer_shaders_cxx COMMAND test_renderer_shaders_cxx)
+set_tests_properties(test_renderer_shaders_cxx PROPERTIES LABELS "unit")
 
 # Creation refused for want of a driver: no GPU needed, so `unit`, and it runs in CI, where there is not even a loader.
 # The renderer logs an error line on purpose here, so there is no FAIL_REGULAR_EXPRESSION.
@@ -117,6 +153,14 @@ add_test(NAME test_renderer_device_preference_cxx COMMAND test_renderer_device_c
 set_tests_properties(test_renderer_device_preference_cxx PROPERTIES
         LABELS "gpu"
         PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] warning: no GPU name contains \"liara-no-such-gpu\""
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] error:|Status: FAILURE")
+
+# The same binary, one case: a renderer destroyed with a mesh never released. It frees the mesh and says how many it
+# found, which is what this registration requires and what the main one would fail on.
+add_test(NAME test_renderer_device_leftover_mesh_cxx COMMAND test_renderer_device_cxx "--test-case=*left uploaded*")
+set_tests_properties(test_renderer_device_leftover_mesh_cxx PROPERTIES
+        LABELS "gpu"
+        PASS_REGULAR_EXPRESSION "\\[liara-renderer\\] warning: meshes never released before destruction: 1"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] error:|Status: FAILURE")
 
 # The same refusal must say what is missing, so that the person reading it knows what to install: a missing loader on a

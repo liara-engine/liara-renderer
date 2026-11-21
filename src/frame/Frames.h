@@ -4,17 +4,21 @@
  * @file Frames.h
  */
 
+#include "passes/ViewPass.h"
 #include "swapchain/PresentStatus.h"
+
+#include <liara/renderer/packet.h>
 
 #include <vulkan/vulkan_raii.hpp>
 
-#include <array>
 #include <cstddef>
 #include <vector>
 
 namespace Liara::Renderer
 {
     class Device;
+    class Meshes;
+    class MeshPipeline;
     class Swapchain;
 
     /** @brief How many frames the CPU records while the GPU still works on earlier ones. */
@@ -22,15 +26,16 @@ namespace Liara::Renderer
 
     /**
      * @brief The frames in flight, each with its command buffer, its fence and its "image acquired" semaphore, and
-     * what a frame does: clear the next swapchain image and present it.
+     * what a frame does: draw a packet's views into the next swapchain image and present it.
      *
-     * The clear is the load operation of an empty dynamic rendering scope, the scope the triangle will be drawn in.
+     * What is drawn inside the image is the view pass's; this class owns the image's layout transitions around it, the
+     * synchronization and the presentation.
      */
     class Frames
     {
     public:
-        /** @param device, swapchain Both outlive this object. */
-        Frames(const Device& device, Swapchain& swapchain);
+        /** @param device, swapchain, meshes, pipeline All outlive this object; the pipeline matches the swapchain. */
+        Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes, const MeshPipeline& pipeline);
         ~Frames() = default;
 
         Frames(const Frames&) = delete;
@@ -38,9 +43,8 @@ namespace Liara::Renderer
         Frames(Frames&&) = delete;
         Frames& operator=(Frames&&) = delete;
 
-        /** @brief Clear the next image to `clearColor` (linear RGBA, or encoded for a non-sRGB format) and present it.
-         */
-        [[nodiscard]] PresentStatus Draw(const std::array<float, 4>& clearColor);
+        /** @brief Draw a checked packet's views into the next image and present it. */
+        [[nodiscard]] PresentStatus Draw(const liara_render_packet_t& packet);
 
     private:
         struct Frame
@@ -50,11 +54,12 @@ namespace Liara::Renderer
             vk::raii::Semaphore m_ImageAcquired;
         };
 
-        void Record(const Frame& frame, uint32_t imageIndex, const std::array<float, 4>& clearColor) const;
+        void Record(const Frame& frame, uint32_t imageIndex, const liara_render_packet_t& packet);
 
         const Device* m_Device;
         Swapchain* m_Swapchain;
         std::vector<Frame> m_Frames;
         std::size_t m_Current = 0;
+        ViewPass m_Pass;
     };
 }  // namespace Liara::Renderer

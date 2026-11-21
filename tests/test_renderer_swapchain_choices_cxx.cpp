@@ -14,8 +14,8 @@ using Liara::Renderer::ChooseCompositeAlpha;
 using Liara::Renderer::ChooseExtent;
 using Liara::Renderer::ChooseImageCount;
 using Liara::Renderer::ChooseSurfaceFormat;
-using Liara::Renderer::ClearColorFromPacket;
 using Liara::Renderer::IsSrgbFormat;
+using Liara::Renderer::LinearColorFromArgb;
 
 namespace
 {
@@ -81,14 +81,14 @@ TEST_CASE("IsSrgbFormat") {
     CHECK_FALSE(IsSrgbFormat(vk::Format::eB8G8R8A8Unorm));
 }
 
-TEST_CASE("ClearColorFromPacket - decoded from sRGB for an sRGB format, as is otherwise, alpha ignored") {
-    const auto srgb = ClearColorFromPacket(0xFF0080FFU, true);
+TEST_CASE("LinearColorFromArgb - decoded from sRGB for an sRGB format, as is otherwise, alpha ignored") {
+    const auto srgb = LinearColorFromArgb(0xFF0080FFU, true);
     CHECK(srgb.at(0) == doctest::Approx(0.0F));
     CHECK(srgb.at(1) == doctest::Approx(0.2158605F).epsilon(1e-5));
     CHECK(srgb.at(2) == doctest::Approx(1.0F));
     CHECK(srgb.at(3) == doctest::Approx(1.0F));
 
-    const auto unorm = ClearColorFromPacket(0x000080FFU, false);
+    const auto unorm = LinearColorFromArgb(0x000080FFU, false);
     CHECK(unorm.at(1) == doctest::Approx(128.0F / 255.0F));
     CHECK(unorm.at(3) == doctest::Approx(1.0F));
 }

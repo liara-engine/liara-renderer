@@ -2,11 +2,12 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "TestCreateInfo.h"
 
+#include <liara/mesh.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
 #include <liara/result.h>
 
-#include <cstddef>
+#include <array>
 #include <cstdint>
 #include <string_view>
 
@@ -19,17 +20,33 @@
 
 namespace
 {
-    constexpr liara_render_packet_t Packet(const uint16_t width,
-                                           const uint16_t height,
-                                           const liara_render_drawable_t* drawables,
-                                           const size_t count) {
+    constexpr std::array<float, 9> TRIANGLE_POSITIONS {0.0F, 0.5F, 0.0F, 0.5F, -0.5F, 0.0F, -0.5F, -0.5F, 0.0F};
+    constexpr std::array<uint32_t, 3> TRIANGLE_COLORS {0xFFFF0000U, 0xFF00FF00U, 0xFF0000FFU};
+    constexpr std::array<float, 12>
+        QUAD_POSITIONS {-0.9F, 0.6F, 0.0F, -0.6F, 0.6F, 0.0F, -0.6F, 0.9F, 0.0F, -0.9F, 0.9F, 0.0F};
+    constexpr std::array<uint32_t, 6> QUAD_INDICES {0, 1, 2, 2, 3, 0};
+
+    constexpr liara_mesh_data_t Triangle() {
         return {
-            .struct_version = LIARA_RENDER_PACKET_VERSION,
-            .grid_width = width,
-            .grid_height = height,
-            .background_color = 0xFF000000U,
-            .drawables = drawables,
-            .drawable_count = count,
+            .struct_version = LIARA_MESH_DATA_VERSION,
+            .reserved = 0,
+            .positions = TRIANGLE_POSITIONS.data(),
+            .colors = TRIANGLE_COLORS.data(),
+            .vertex_count = 3,
+            .indices = nullptr,
+            .index_count = 0,
+        };
+    }
+
+    constexpr liara_mesh_data_t Quad() {
+        return {
+            .struct_version = LIARA_MESH_DATA_VERSION,
+            .reserved = 0,
+            .positions = QUAD_POSITIONS.data(),
+            .colors = nullptr,
+            .vertex_count = 4,
+            .indices = QUAD_INDICES.data(),
+            .index_count = QUAD_INDICES.size(),
         };
     }
 }  // namespace
@@ -53,24 +70,99 @@ TEST_CASE("liara_renderer_create - two renderers alive at once") {
     liara_renderer_destroy(second);
 }
 
-TEST_CASE("liara_renderer_submit_frame - forwards the console renderer's verdicts") {
+TEST_CASE("liara_renderer_submit_frame - checks the packet, then draws nothing without a window") {
     liara_renderer_handle_t* renderer = nullptr;
     REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
 
+    const liara_render_drawable_t drawable {.mesh = 1};
+    liara_render_view_t view {
+        .target = LIARA_RENDER_TARGET_WINDOW,
+        .viewport = {.x = 0.0F, .y = 0.0F, .width = 1.0F, .height = 1.0F},
+        .clear_color = 0xFF1A2440U,
+        .reserved = 0,
+        .drawables = &drawable,
+        .drawable_count = 1,
+    };
+    liara_render_packet_t packet {
+        .struct_version = LIARA_RENDER_PACKET_VERSION,
+        .reserved = 0,
+        .views = &view,
+        .view_count = 1,
+    };
+
     CHECK(liara_renderer_submit_frame(renderer, nullptr) == LIARA_RESULT_NULL_POINTER);
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_SUCCESS);
+    view.target = LIARA_RENDER_TARGET_NONE;
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_INVALID_ARGUMENT);
+    packet.struct_version = 1;
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_VERSION_MISMATCH);
 
-    const liara_render_packet_t zeroWidth = Packet(0, 4, nullptr, 0);
-    CHECK(liara_renderer_submit_frame(renderer, &zeroWidth) == LIARA_RESULT_INVALID_ARGUMENT);
+    liara_renderer_destroy(renderer);
+}
 
-    const liara_render_packet_t nullDrawables = Packet(4, 4, nullptr, 1);
-    CHECK(liara_renderer_submit_frame(renderer, &nullDrawables) == LIARA_RESULT_NULL_POINTER);
+TEST_CASE("liara_renderer_mesh_upload - an identifier already taken") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
 
-    liara_render_drawable_t drawable {.x = 1.0F, .y = 1.0F, .color = 0xFFFF0000U};
-    const liara_render_packet_t valid = Packet(4, 4, &drawable, 1);
-    CHECK(liara_renderer_submit_frame(renderer, &valid) == LIARA_RESULT_SUCCESS);
-    drawable.x = 2.0F;
-    CHECK(liara_renderer_submit_frame(renderer, &valid) == LIARA_RESULT_SUCCESS);
+    const liara_mesh_data_t data = Triangle();
+    REQUIRE(liara_renderer_mesh_upload(renderer, 1, &data) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_upload(renderer, 1, &data) == LIARA_RESULT_RESOURCE_ALREADY_EXISTS);
+    CHECK(liara_renderer_mesh_release(renderer, 1) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_release(renderer, 1) == LIARA_RESULT_RESOURCE_NOT_FOUND);
 
+    liara_renderer_destroy(renderer);
+}
+
+TEST_CASE("liara_renderer_mesh_upload - with and without colours, indexed or not") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
+
+    const liara_mesh_data_t coloured = Triangle();
+    liara_mesh_data_t uncoloured = Triangle();
+    uncoloured.colors = nullptr;
+    const liara_mesh_data_t indexed = Quad();
+    CHECK(liara_renderer_mesh_upload(renderer, 1, &coloured) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_upload(renderer, 2, &uncoloured) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_upload(renderer, 3, &indexed) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_release(renderer, 1) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_release(renderer, 2) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_release(renderer, 3) == LIARA_RESULT_SUCCESS);
+
+    liara_renderer_destroy(renderer);
+}
+
+TEST_CASE("liara_renderer_mesh_release - an identifier never uploaded, and NONE") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
+
+    CHECK(liara_renderer_mesh_release(renderer, 5) == LIARA_RESULT_RESOURCE_NOT_FOUND);
+    CHECK(liara_renderer_mesh_release(renderer, LIARA_MESH_ID_NONE) == LIARA_RESULT_INVALID_ARGUMENT);
+
+    liara_renderer_destroy(renderer);
+}
+
+TEST_CASE("liara_renderer_mesh_upload - invalid data is refused on a live renderer") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
+
+    liara_mesh_data_t data = Triangle();
+    data.struct_version = 2;
+    CHECK(liara_renderer_mesh_upload(renderer, 1, &data) == LIARA_RESULT_VERSION_MISMATCH);
+    data = Triangle();
+    CHECK(liara_renderer_mesh_upload(renderer, LIARA_MESH_ID_NONE, &data) == LIARA_RESULT_INVALID_ARGUMENT);
+    // The refusals left the table untouched: the identifier is still free.
+    CHECK(liara_renderer_mesh_upload(renderer, 1, &data) == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_mesh_release(renderer, 1) == LIARA_RESULT_SUCCESS);
+
+    liara_renderer_destroy(renderer);
+}
+
+// Registered on its own (tests/CMakeLists.txt), since it expects the warning the main registration fails on.
+TEST_CASE("liara_renderer_destroy - a mesh left uploaded") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
+    const liara_mesh_data_t data = Triangle();
+    REQUIRE(liara_renderer_mesh_upload(renderer, 1, &data) == LIARA_RESULT_SUCCESS);
     liara_renderer_destroy(renderer);
 }
 

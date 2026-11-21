@@ -30,6 +30,9 @@ namespace Liara::Renderer
         Allocator(Allocator&&) = delete;
         Allocator& operator=(Allocator&&) = delete;
 
+        /** @brief The VMA allocator, for the buffers and images created from it. */
+        [[nodiscard]] VmaAllocator_T* Get() const noexcept;
+
     private:
         VmaAllocator_T* m_Allocator = nullptr;
     };
