@@ -46,6 +46,13 @@ TEST_CASE("ChooseExtent - a surface without a size of its own takes the window's
     CHECK(ChooseExtent(capabilities, {.width = 8000, .height = 720}) == vk::Extent2D {4096, 720});
 }
 
+TEST_CASE("ChooseExtent - a window with no area keeps its zero, clamped to nothing") {
+    const auto capabilities = Capabilities({NO_SIZE_OF_ITS_OWN, NO_SIZE_OF_ITS_OWN});
+    CHECK(ChooseExtent(capabilities, {.width = 0, .height = 720}) == vk::Extent2D {0, 720});
+    CHECK(ChooseExtent(capabilities, {.width = 1280, .height = 0}) == vk::Extent2D {1280, 0});
+    CHECK(ChooseExtent(capabilities, {.width = 0, .height = 0}) == vk::Extent2D {0, 0});
+}
+
 TEST_CASE("ChooseExtent - a surface with a size of its own keeps it, zero included") {
     CHECK(ChooseExtent(Capabilities({800, 600}), {.width = 1280, .height = 720}) == vk::Extent2D {800, 600});
     CHECK(ChooseExtent(Capabilities({0, 0}), {.width = 1280, .height = 720}) == vk::Extent2D {0, 0});

@@ -58,8 +58,12 @@ namespace Liara::Renderer
 
     vk::Extent2D ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilities, const liara_extent2d_t pixelSize) {
         if (capabilities.currentExtent.width != NO_SIZE_OF_ITS_OWN) { return capabilities.currentExtent; }
-        return {std::clamp(pixelSize.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
-                std::clamp(pixelSize.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
+        // A zero stays zero: the window has no area, and clamping it up to the surface's minimum would invent one.
+        const auto clamp = [](const uint32_t size, const uint32_t minimum, const uint32_t maximum) {
+            return size == 0 ? 0 : std::clamp(size, minimum, maximum);
+        };
+        return {clamp(pixelSize.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+                clamp(pixelSize.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
     }
 
     SwapchainPlan PlanSwapchain(const vk::Extent2D chosen,

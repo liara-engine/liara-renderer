@@ -32,8 +32,8 @@ namespace Liara::Renderer
 
     /**
      * @brief The surface's own extent, or, when it has none (`currentExtent` of `0xFFFFFFFF`, as under Wayland), the
-     * window's pixel size clamped per axis to what the surface accepts. A zero extent is returned as is: the caller
-     * refuses it.
+     * window's pixel size clamped per axis to what the surface accepts, except that a zero component stays zero (the
+     * window has no area). A zero extent is returned as is: the caller refuses it.
      */
     [[nodiscard]] vk::Extent2D ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilities, liara_extent2d_t pixelSize);
 

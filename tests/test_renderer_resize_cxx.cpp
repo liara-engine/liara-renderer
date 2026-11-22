@@ -139,27 +139,136 @@ namespace
         }
         return offered;
     }
+
+    /**
+     * @brief Everything the sink wrote while a renderer on a 64 by 64 headless surface, with the triangle uploaded,
+     * went through `steps`, then released the triangle and was destroyed.
+     */
+    template<typename Steps>
+    std::string RunAndCapture(Steps steps) {
+        std::string written;
+        {
+            const SinkCapture capture;
+            {
+                Renderer renderer(HeadlessConfig(64, 64));
+                UploadTriangle(renderer);
+                steps(renderer);
+                if (renderer.ReleaseMesh(TRIANGLE) != LIARA_RESULT_SUCCESS) {
+                    throw std::runtime_error("the triangle could not be released");
+                }
+            }
+            written = capture.Written();
+        }
+        return written;
+    }
+
+    constexpr std::string_view RECREATED = "info: swapchain recreated ";
+    constexpr std::string_view NO_AREA = "info: window has no area; presentation paused";
 }  // namespace
 
 TEST_CASE("Resize - created at 64x64, frames present without recreating") {
     if (!HeadlessSurfaceOffered()) { return; }
-    std::string written;
-    {
-        const SinkCapture capture;
-        {
-            Renderer renderer(HeadlessConfig(64, 64));
-            UploadTriangle(renderer);
-            const bool allPresented = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS);
-            const bool released = renderer.ReleaseMesh(TRIANGLE) == LIARA_RESULT_SUCCESS;
-            CHECK(allPresented);
-            CHECK(released);
-        }
-        written = capture.Written();
-    }
+    bool presented = false;
+    const std::string written = RunAndCapture(
+        [&](Renderer& renderer) { presented = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS); });
     const bool createdOnce = CountOf(written, "info: swapchain 64x64, ") == 1;
-    const bool neverRecreated = CountOf(written, "swapchain recreated") == 0;
+    const bool neverRecreated = CountOf(written, RECREATED) == 0;
+    CHECK(presented);
     CHECK(createdOnce);
     CHECK(neverRecreated);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - a pushed size recreates once, at that size") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool presented = false;
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 128, .height = 96});
+        presented = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS);
+    });
+    const bool recreatedOnce = CountOf(written, RECREATED) == 1;
+    const bool atThatSize = CountOf(written, "swapchain recreated 128x96, ") == 1;
+    CHECK(presented);
+    CHECK(recreatedOnce);
+    CHECK(atThatSize);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - several pushes cost one recreation") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool presented = false;
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 100, .height = 100});
+        renderer.WindowResized({.width = 50, .height = 50});
+        renderer.WindowResized({.width = 80, .height = 60});
+        presented = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS);
+    });
+    const bool recreatedOnce = CountOf(written, RECREATED) == 1;
+    const bool atTheLast = CountOf(written, "swapchain recreated 80x60, ") == 1;
+    const bool notAtTheOthers =
+        CountOf(written, "swapchain recreated 100x100") == 0 && CountOf(written, "swapchain recreated 50x50") == 0;
+    CHECK(presented);
+    CHECK(recreatedOnce);
+    CHECK(atTheLast);
+    CHECK(notAtTheOthers);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - the current size pushed again recreates nothing") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool presented = false;
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 64, .height = 64});
+        presented = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS);
+    });
+    const bool neverRecreated = CountOf(written, RECREATED) == 0;
+    CHECK(presented);
+    CHECK(neverRecreated);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - no area pauses, and a later size resumes") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool paused = false;
+    bool resumed = false;
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 0, .height = 0});
+        paused = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SURFACE_OUT_OF_DATE);
+        renderer.WindowResized({.width = 96, .height = 64});
+        resumed = AllAre(SubmitFrames(renderer, FRAMES), LIARA_RESULT_SUCCESS);
+    });
+    const bool saidOnce = CountOf(written, NO_AREA) == 1;
+    const bool recreatedOnceAtTheNewSize =
+        CountOf(written, RECREATED) == 1 && CountOf(written, "swapchain recreated 96x64, ") == 1;
+    CHECK(paused);
+    CHECK(resumed);
+    CHECK(saidOnce);
+    CHECK(recreatedOnceAtTheNewSize);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - one zero component is no area too") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool paused = false;
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 0, .height = 64});
+        paused = AllAre(SubmitFrames(renderer, 1), LIARA_RESULT_SURFACE_OUT_OF_DATE);
+    });
+    const bool saidOnce = CountOf(written, NO_AREA) == 1;
+    CHECK(paused);
+    CHECK(saidOnce);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - a renderer without a swapchain releases and shuts down cleanly") {
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool paused = false;
+    // RunAndCapture releases the triangle and destroys the renderer after the steps, here with no swapchain left.
+    const std::string written = RunAndCapture([&](Renderer& renderer) {
+        renderer.WindowResized({.width = 0, .height = 0});
+        paused = AllAre(SubmitFrames(renderer, 1), LIARA_RESULT_SURFACE_OUT_OF_DATE);
+    });
+    CHECK(paused);
     CheckNoWarningOrError(written);
 }
 

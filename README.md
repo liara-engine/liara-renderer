@@ -15,7 +15,7 @@ It is the most complex module in the project and the one whose replaceability ma
 
 ## Status
 
-**v0.1, in progress.** Creating a renderer creates a Vulkan 1.3 instance, selects a GPU, and creates a logical device, a command pool and a VMA allocator. Given a window, it presents to it through a swapchain, and draws the meshes a host uploaded wherever v0.1's experimental render packet places them: the hello triangle. Swapchain recreation on resize comes next.
+**v0.1, in progress.** Creating a renderer creates a Vulkan 1.3 instance, selects a GPU, and creates a logical device, a command pool and a VMA allocator. Given a window, it presents to it through a swapchain, and draws the meshes a host uploaded wherever v0.1's experimental render packet places them: the hello triangle. The swapchain is recreated whenever the window's size changes or the window system reports it out of date.
 
 ## Documentation
 
