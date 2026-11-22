@@ -21,6 +21,8 @@
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
 
+#include <vulkan/vulkan_raii.hpp>
+
 #include <cstddef>
 #include <exception>
 #include <format>
@@ -29,12 +31,22 @@
 
 namespace Liara::Renderer
 {
+    namespace
+    {
+        /** @brief The surface on the host's window, a headless one for the tests, or none. */
+        std::unique_ptr<Surface> CreateSurface(const vk::raii::Instance& instance, const RendererConfig& config) {
+            if (config.m_Window.kind != LIARA_NATIVE_WINDOW_KIND_NONE) {
+                return std::make_unique<Surface>(instance, config.m_Window);
+            }
+            if (config.m_HeadlessSurface) { return std::make_unique<Surface>(instance); }
+            return nullptr;
+        }
+    }  // namespace
+
     Renderer::Renderer(const RendererConfig& config)
         : m_Loader(std::make_unique<Loader>())
-        , m_Instance(std::make_unique<Instance>(*m_Loader, config.m_Window.kind))
-        , m_Surface(config.m_Window.kind == LIARA_NATIVE_WINDOW_KIND_NONE
-                        ? nullptr
-                        : std::make_unique<Surface>(m_Instance->Get(), config.m_Window))
+        , m_Instance(std::make_unique<Instance>(*m_Loader, config.m_Window.kind, config.m_HeadlessSurface))
+        , m_Surface(CreateSurface(m_Instance->Get(), config))
         , m_Device(std::make_unique<Device>(m_Instance->Get(),
                                             m_Surface ? &m_Surface->Get() : nullptr,
                                             config.m_PreferredDeviceName))

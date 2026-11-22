@@ -21,12 +21,13 @@ namespace Liara::Renderer
      * instance itself is created and destroyed.
      *
      * With a window kind other than `LIARA_NATIVE_WINDOW_KIND_NONE`, the instance also enables `VK_KHR_surface` and
-     * that kind's surface extension, and throws `Unsupported` when the loader lacks either.
+     * that kind's surface extension, and throws `Unsupported` when the loader lacks either. With `headlessSurface`, it
+     * enables `VK_KHR_surface` and `VK_EXT_headless_surface` instead, for the tests of the presentation path.
      */
     class Instance
     {
     public:
-        Instance(const Loader& loader, liara_native_window_kind_t windowKind);
+        Instance(const Loader& loader, liara_native_window_kind_t windowKind, bool headlessSurface = false);
         ~Instance() = default;
 
         Instance(const Instance&) = delete;

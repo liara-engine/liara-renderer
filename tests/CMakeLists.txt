@@ -50,6 +50,21 @@ set_tests_properties(test_renderer_draw_cxx PROPERTIES
         LABELS "gpu"
         FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
 
+# The swapchain's recreation on a VK_EXT_headless_surface surface, which has no size of its own, like a Wayland one: the
+# size the test pushes is what the swapchain follows. It links the renderer's internals (liara_renderer_objects), since
+# the ABI has no headless surface, and needs a GPU, so `gpu`. Where the loader does not offer the extension, it says so
+# and the case is reported skipped. Any warning or error line fails it, validation messages included.
+add_executable(test_renderer_resize_cxx test_renderer_resize_cxx.cpp)
+target_include_directories(test_renderer_resize_cxx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_renderer_resize_cxx PRIVATE
+        liara_renderer_objects
+        doctest::doctest)
+add_test(NAME test_renderer_resize_cxx COMMAND test_renderer_resize_cxx)
+set_tests_properties(test_renderer_resize_cxx PROPERTIES
+        LABELS "gpu"
+        SKIP_REGULAR_EXPRESSION "does not offer VK_EXT_headless_surface: skipped"
+        FAIL_REGULAR_EXPRESSION "\\[liara-renderer\\] (warning|error):")
+
 # The device selection policy alone, without a GPU: the source is compiled into the test, which links no renderer, so
 # the same code is tested under every preset with no duplicate symbol and no export needed.
 find_package(VulkanHeaders CONFIG REQUIRED)

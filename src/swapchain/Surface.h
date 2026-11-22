@@ -31,6 +31,12 @@ namespace Liara::Renderer
     {
     public:
         Surface(const vk::raii::Instance& instance, const liara_native_window_t& window);
+
+        /**
+         * @brief A headless surface (`VK_EXT_headless_surface`), on an instance that enabled it: no window, and no
+         * size of its own, as under Wayland. It exists for the tests of the presentation path.
+         */
+        explicit Surface(const vk::raii::Instance& instance);
         ~Surface() = default;
 
         Surface(const Surface&) = delete;
