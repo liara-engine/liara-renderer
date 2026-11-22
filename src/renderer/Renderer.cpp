@@ -43,7 +43,7 @@ namespace Liara::Renderer
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
         , m_Pipeline(m_Swapchain ? std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat()) : nullptr)
-        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr)
+        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes) : nullptr)
         , m_WindowSize(config.m_PixelSize) {}
 
     Renderer::~Renderer() {
@@ -82,7 +82,9 @@ namespace Liara::Renderer
 
         // Sticky until a later stage recreates the swapchain, which also keeps the log line below to one.
         if (m_PresentStatus == PresentStatus::Ok) {
-            m_PresentStatus = m_Frames->Draw(packet);
+            const PresentStatus drawn = m_Frames->Draw(packet, *m_Pipeline);
+            // Presented all the same; reacting to it is the swapchain's recreation, which comes later.
+            m_PresentStatus = drawn == PresentStatus::Suboptimal ? PresentStatus::Ok : drawn;
             if (m_PresentStatus == PresentStatus::OutOfDate) {
                 Log::Info("swapchain out of date; resizing is handled from stage 6");
             }
@@ -92,7 +94,8 @@ namespace Liara::Renderer
         }
 
         switch (m_PresentStatus) {
-            case PresentStatus::Ok: return LIARA_RESULT_SUCCESS;
+            case PresentStatus::Ok:
+            case PresentStatus::Suboptimal: return LIARA_RESULT_SUCCESS;
             case PresentStatus::OutOfDate: return LIARA_RESULT_SURFACE_OUT_OF_DATE;
             case PresentStatus::SurfaceLost: return LIARA_RESULT_SURFACE_LOST;
         }

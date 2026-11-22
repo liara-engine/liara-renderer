@@ -45,7 +45,10 @@ namespace Liara::Renderer
         [[nodiscard]] const vk::raii::ImageView& GetView(uint32_t index) const;
         [[nodiscard]] const vk::raii::Semaphore& GetRenderFinished(uint32_t index) const;
 
-        /** @brief Acquire the next image, signalling `imageAcquired`. On `Ok`, `outIndex` is that image. */
+        /**
+         * @brief Acquire the next image, signalling `imageAcquired`. On `Ok` or `Suboptimal`, `outIndex` is that
+         * image.
+         */
         [[nodiscard]] PresentStatus Acquire(const vk::raii::Semaphore& imageAcquired, uint32_t& outIndex);
 
         /** @brief Present an image once its "render finished" semaphore is signalled. */

@@ -83,10 +83,10 @@ namespace Liara::Renderer
 
     PresentStatus Swapchain::Acquire(const vk::raii::Semaphore& imageAcquired, uint32_t& outIndex) {
         try {
-            // No timeout: FIFO hands an image back within a refresh or two. VK_SUBOPTIMAL_KHR counts as acquired.
+            // No timeout: FIFO hands an image back within a refresh or two. VK_SUBOPTIMAL_KHR is an acquired image.
             const auto [result, index] = m_Swapchain.acquireNextImage(UINT64_MAX, *imageAcquired);
             outIndex = index;
-            return PresentStatus::Ok;
+            return result == vk::Result::eSuboptimalKHR ? PresentStatus::Suboptimal : PresentStatus::Ok;
         }
         catch (const vk::OutOfDateKHRError&) {
             return PresentStatus::OutOfDate;
@@ -100,9 +100,9 @@ namespace Liara::Renderer
         const vk::Semaphore renderFinished = *m_RenderFinished.at(index);
         const vk::SwapchainKHR swapchain = *m_Swapchain;
         try {
-            // VK_SUBOPTIMAL_KHR counts as presented.
-            (void)queue.presentKHR(vk::PresentInfoKHR(renderFinished, swapchain, index));
-            return PresentStatus::Ok;
+            // VK_SUBOPTIMAL_KHR is a presented image.
+            const vk::Result result = queue.presentKHR(vk::PresentInfoKHR(renderFinished, swapchain, index));
+            return result == vk::Result::eSuboptimalKHR ? PresentStatus::Suboptimal : PresentStatus::Ok;
         }
         catch (const vk::OutOfDateKHRError&) {
             return PresentStatus::OutOfDate;

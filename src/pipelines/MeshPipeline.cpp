@@ -101,7 +101,10 @@ namespace Liara::Renderer
 
     MeshPipeline::MeshPipeline(const Device& device, const vk::Format colorFormat)
         : m_Layout(device.Get().createPipelineLayout({}))
-        , m_Pipeline(Build(device.Get(), m_Layout, colorFormat)) {}
+        , m_Pipeline(Build(device.Get(), m_Layout, colorFormat))
+        , m_ColorFormat(colorFormat) {}
 
     const vk::raii::Pipeline& MeshPipeline::Get() const noexcept { return m_Pipeline; }
+
+    vk::Format MeshPipeline::GetColorFormat() const noexcept { return m_ColorFormat; }
 }  // namespace Liara::Renderer
