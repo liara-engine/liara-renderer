@@ -14,11 +14,15 @@
 #include "swapchain/PresentStatus.h"
 #include "swapchain/Surface.h"
 #include "swapchain/Swapchain.h"
+#include "swapchain/SwapchainChoices.h"
 
+#include <liara/extent.h>
 #include <liara/mesh.h>
 #include <liara/native_window.h>
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
+
+#include <vulkan/vulkan_raii.hpp>
 
 #include <cstddef>
 #include <exception>
@@ -28,12 +32,25 @@
 
 namespace Liara::Renderer
 {
+    namespace
+    {
+        /** Said once each time the window loses its area and the swapchain goes. */
+        constexpr const char* NO_AREA = "window has no area; presentation paused";
+
+        /** @brief The surface on the host's window, a headless one for the tests, or none. */
+        std::unique_ptr<Surface> CreateSurface(const vk::raii::Instance& instance, const RendererConfig& config) {
+            if (config.m_Window.kind != LIARA_NATIVE_WINDOW_KIND_NONE) {
+                return std::make_unique<Surface>(instance, config.m_Window);
+            }
+            if (config.m_HeadlessSurface) { return std::make_unique<Surface>(instance); }
+            return nullptr;
+        }
+    }  // namespace
+
     Renderer::Renderer(const RendererConfig& config)
         : m_Loader(std::make_unique<Loader>())
-        , m_Instance(std::make_unique<Instance>(*m_Loader, config.m_Window.kind))
-        , m_Surface(config.m_Window.kind == LIARA_NATIVE_WINDOW_KIND_NONE
-                        ? nullptr
-                        : std::make_unique<Surface>(m_Instance->Get(), config.m_Window))
+        , m_Instance(std::make_unique<Instance>(*m_Loader, config.m_Window.kind, config.m_HeadlessSurface))
+        , m_Surface(CreateSurface(m_Instance->Get(), config))
         , m_Device(std::make_unique<Device>(m_Instance->Get(),
                                             m_Surface ? &m_Surface->Get() : nullptr,
                                             config.m_PreferredDeviceName))
@@ -42,7 +59,8 @@ namespace Liara::Renderer
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
         , m_Pipeline(m_Swapchain ? std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat()) : nullptr)
-        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr) {}
+        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes) : nullptr)
+        , m_WindowSize(config.m_PixelSize) {}
 
     Renderer::~Renderer() {
         // Frames may still be in flight; nothing they use can go before the GPU is done with it.
@@ -69,25 +87,70 @@ namespace Liara::Renderer
 
     liara_result_t Renderer::ReleaseMesh(const liara_mesh_id_t mesh) { return m_Meshes->Release(mesh); }
 
+    void Renderer::WindowResized(const liara_extent2d_t pixelSize) noexcept {
+        if (!m_Swapchain) { return; }
+        m_WindowSize = pixelSize;
+        m_CheckSwapchain = true;
+    }
+
+    bool Renderer::SwapchainReady() {
+        if (!m_CheckSwapchain) { return true; }
+        switch (m_Swapchain->Plan(m_WindowSize, m_SwapchainInvalid)) {
+            case SwapchainPlan::Keep: m_CheckSwapchain = false; return true;
+            case SwapchainPlan::Recreate:
+                if (const bool hadImages = m_Swapchain->HasImages(); !m_Swapchain->Recreate(m_WindowSize)) {
+                    // The window lost its area since the plan looked at it, and the swapchain is released: as below.
+                    if (hadImages) { Log::Info(NO_AREA); }
+                    return false;
+                }
+                // The same surface is expected to keep offering the same format; if it does not, the pipeline follows.
+                if (m_Swapchain->GetFormat() != m_Pipeline->GetColorFormat()) {
+                    m_Pipeline = std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat());
+                }
+                m_CheckSwapchain = false;
+                m_SwapchainInvalid = false;
+                return true;
+            case SwapchainPlan::NoArea:
+                // The flag stays set, so every frame looks again: a window may get its area back without an event.
+                if (m_Swapchain->HasImages()) {
+                    m_Swapchain->Release();
+                    Log::Info(NO_AREA);
+                }
+                return false;
+        }
+        return false;
+    }
+
     liara_result_t Renderer::SubmitFrame(const liara_render_packet_t& packet) {
         if (const liara_result_t checked = ValidatePacket(packet); checked != LIARA_RESULT_SUCCESS) { return checked; }
         if (!m_Frames) { return LIARA_RESULT_SUCCESS; }
+        if (m_SurfaceLost) { return LIARA_RESULT_SURFACE_LOST; }
 
-        // Sticky until a later stage recreates the swapchain, which also keeps the log line below to one.
-        if (m_PresentStatus == PresentStatus::Ok) {
-            m_PresentStatus = m_Frames->Draw(packet);
-            if (m_PresentStatus == PresentStatus::OutOfDate) {
-                Log::Info("swapchain out of date; resizing is handled from stage 6");
-            }
-            else if (m_PresentStatus == PresentStatus::SurfaceLost) {
-                Log::Warning("surface lost; presentation stops");
-            }
+        PresentStatus status = PresentStatus::Ok;
+        try {
+            if (!SwapchainReady()) { return LIARA_RESULT_SURFACE_OUT_OF_DATE; }
+            status = m_Frames->Draw(packet, *m_Pipeline);
+        }
+        catch (const vk::SurfaceLostKHRError&) {
+            // Querying or recreating the swapchain can find the surface gone too, not only acquiring or presenting.
+            status = PresentStatus::SurfaceLost;
         }
 
-        switch (m_PresentStatus) {
+        switch (status) {
             case PresentStatus::Ok: return LIARA_RESULT_SUCCESS;
-            case PresentStatus::OutOfDate: return LIARA_RESULT_SURFACE_OUT_OF_DATE;
-            case PresentStatus::SurfaceLost: return LIARA_RESULT_SURFACE_LOST;
+            case PresentStatus::Suboptimal:
+                // Presented; the next frame recreates the swapchain first.
+                m_CheckSwapchain = true;
+                m_SwapchainInvalid = true;
+                return LIARA_RESULT_SUCCESS;
+            case PresentStatus::OutOfDate:
+                m_CheckSwapchain = true;
+                m_SwapchainInvalid = true;
+                return LIARA_RESULT_SURFACE_OUT_OF_DATE;
+            case PresentStatus::SurfaceLost:
+                m_SurfaceLost = true;
+                Log::Warning("surface lost; presentation stops");
+                return LIARA_RESULT_SURFACE_LOST;
         }
         return LIARA_RESULT_FAILED;
     }

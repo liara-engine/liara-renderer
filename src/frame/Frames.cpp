@@ -38,10 +38,10 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    Frames::Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes, const MeshPipeline& pipeline)
+    Frames::Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes)
         : m_Device(&device)
         , m_Swapchain(&swapchain)
-        , m_Pass(meshes, pipeline) {
+        , m_Pass(meshes) {
         vk::raii::CommandBuffers commands(device.Get(),
                                           vk::CommandBufferAllocateInfo(*device.GetCommandPool(),
                                                                         vk::CommandBufferLevel::ePrimary,
@@ -57,22 +57,20 @@ namespace Liara::Renderer
         }
     }
 
-    PresentStatus Frames::Draw(const liara_render_packet_t& packet) {
+    PresentStatus Frames::Draw(const liara_render_packet_t& packet, const MeshPipeline& pipeline) {
         const Frame& frame = m_Frames.at(m_Current);
         const vk::raii::Device& device = m_Device->Get();
 
         (void)device.waitForFences(*frame.m_InFlight, vk::True, UINT64_MAX);
 
         uint32_t imageIndex = 0;
-        if (const PresentStatus acquired = m_Swapchain->Acquire(frame.m_ImageAcquired, imageIndex);
-            acquired != PresentStatus::Ok) {
-            return acquired;
-        }
+        const PresentStatus acquired = m_Swapchain->Acquire(frame.m_ImageAcquired, imageIndex);
+        if (acquired == PresentStatus::OutOfDate || acquired == PresentStatus::SurfaceLost) { return acquired; }
         // Reset only now: a fence reset before an acquisition that then failed would never be signalled again, and the
         // next wait on this frame would block forever.
         device.resetFences(*frame.m_InFlight);
 
-        Record(frame, imageIndex, packet);
+        Record(frame, imageIndex, packet, pipeline);
 
         const vk::SemaphoreSubmitInfo wait(*frame.m_ImageAcquired,
                                            0,
@@ -86,10 +84,15 @@ namespace Liara::Renderer
         m_Device->GetQueue().submit2(vk::SubmitInfo2({}, wait, commands, signal), *frame.m_InFlight);
 
         m_Current = (m_Current + 1) % FRAMES_IN_FLIGHT;
-        return m_Swapchain->Present(m_Device->GetQueue(), imageIndex);
+        const PresentStatus presented = m_Swapchain->Present(m_Device->GetQueue(), imageIndex);
+        // A suboptimal acquisition was drawn and presented all the same; whatever the presentation said wins over it.
+        return presented == PresentStatus::Ok ? acquired : presented;
     }
 
-    void Frames::Record(const Frame& frame, const uint32_t imageIndex, const liara_render_packet_t& packet) {
+    void Frames::Record(const Frame& frame,
+                        const uint32_t imageIndex,
+                        const liara_render_packet_t& packet,
+                        const MeshPipeline& pipeline) {
         const vk::raii::CommandBuffer& commands = frame.m_Commands;
         const vk::Image image = m_Swapchain->GetImage(imageIndex);
         using Stage = vk::PipelineStageFlagBits2;
@@ -113,7 +116,8 @@ namespace Liara::Renderer
                       m_Swapchain->GetView(imageIndex),
                       m_Swapchain->GetExtent(),
                       IsSrgbFormat(m_Swapchain->GetFormat()),
-                      std::span(packet.views, packet.view_count));
+                      std::span(packet.views, packet.view_count),
+                      pipeline);
 
         const vk::ImageMemoryBarrier2 toPresent = Transition(image,
                                                              Stage::eColorAttachmentOutput,

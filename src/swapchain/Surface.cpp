@@ -77,5 +77,10 @@ namespace Liara::Renderer
                               WindowKindName(window.kind)));
     }
 
+    Surface::Surface(const vk::raii::Instance& instance)
+        : m_Surface(instance, vk::HeadlessSurfaceCreateInfoEXT()) {
+        Log::Info("surface created headless");
+    }
+
     const vk::raii::SurfaceKHR& Surface::Get() const noexcept { return m_Surface; }
 }  // namespace Liara::Renderer

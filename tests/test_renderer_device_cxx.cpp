@@ -2,6 +2,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "TestCreateInfo.h"
 
+#include <liara/extent.h>
 #include <liara/mesh.h>
 #include <liara/renderer/packet.h>
 #include <liara/renderer/renderer.h>
@@ -96,6 +97,33 @@ TEST_CASE("liara_renderer_submit_frame - checks the packet, then draws nothing w
     CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_INVALID_ARGUMENT);
     packet.struct_version = 1;
     CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_VERSION_MISMATCH);
+
+    liara_renderer_destroy(renderer);
+}
+
+TEST_CASE("liara_renderer_window_resized - a renderer without a window ignores it") {
+    liara_renderer_handle_t* renderer = nullptr;
+    REQUIRE(liara_renderer_create(&NO_WINDOW, &renderer) == LIARA_RESULT_SUCCESS);
+
+    CHECK(liara_renderer_window_resized(renderer, liara_extent2d_t {.width = 800, .height = 600})
+          == LIARA_RESULT_SUCCESS);
+    CHECK(liara_renderer_window_resized(renderer, liara_extent2d_t {.width = 0, .height = 0}) == LIARA_RESULT_SUCCESS);
+
+    const liara_render_view_t view {
+        .target = LIARA_RENDER_TARGET_WINDOW,
+        .viewport = {.x = 0.0F, .y = 0.0F, .width = 1.0F, .height = 1.0F},
+        .clear_color = 0xFF1A2440U,
+        .reserved = 0,
+        .drawables = nullptr,
+        .drawable_count = 0,
+    };
+    const liara_render_packet_t packet {
+        .struct_version = LIARA_RENDER_PACKET_VERSION,
+        .reserved = 0,
+        .views = &view,
+        .view_count = 1,
+    };
+    CHECK(liara_renderer_submit_frame(renderer, &packet) == LIARA_RESULT_SUCCESS);
 
     liara_renderer_destroy(renderer);
 }

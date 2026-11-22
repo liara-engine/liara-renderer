@@ -5,6 +5,7 @@
  */
 
 #include "PresentStatus.h"
+#include "SwapchainChoices.h"
 
 #include <liara/extent.h>
 
@@ -25,12 +26,17 @@ namespace Liara::Renderer
      * it was given when the next frame starts, and the validation layer reports reusing it. An image is acquired again
      * only once its previous presentation is done with its semaphore.
      *
-     * Nothing recreates it yet: once out of date it stays so, and the renderer stops presenting.
+     * It is recreated in place, so that whatever points at it keeps doing so, and can be released while the window
+     * has no area, which leaves it without images until the next recreation.
      */
     class Swapchain
     {
     public:
-        /** @brief Throws `std::runtime_error` when the surface has no area, as for a minimised window. */
+        /**
+         * @brief Throws `std::runtime_error` when the surface has no area, as for a minimised window.
+         *
+         * @param device, surface Both outlive this object, which recreates itself on them.
+         */
         Swapchain(const Device& device, const vk::raii::SurfaceKHR& surface, liara_extent2d_t pixelSize);
         ~Swapchain() = default;
 
@@ -39,19 +45,55 @@ namespace Liara::Renderer
         Swapchain(Swapchain&&) = delete;
         Swapchain& operator=(Swapchain&&) = delete;
 
+        /**
+         * @brief Whether this swapchain can stay as it is for a window of `windowSize` pixels: queries the surface's
+         * capabilities, then `PlanSwapchain`.
+         *
+         * @param invalid Whether an acquisition or a presentation reported it out of date or suboptimal.
+         */
+        [[nodiscard]] SwapchainPlan Plan(liara_extent2d_t windowSize, bool invalid) const;
+
+        /**
+         * @brief Replace the swapchain with one chosen anew for a window of `windowSize` pixels, once the GPU is idle.
+         * The current one, if any, is handed over as `oldSwapchain`.
+         *
+         * @return False when the window has no area by then, though `Plan` saw one: it can lose it in between, as a
+         *         Win32 window minimised at that moment does. The swapchain is then released, as `Release` does.
+         */
+        [[nodiscard]] bool Recreate(liara_extent2d_t windowSize);
+
+        /** @brief Drop the swapchain and everything per image, once the GPU is idle. */
+        void Release();
+
+        /** @brief False once released, until the next recreation. */
+        [[nodiscard]] bool HasImages() const noexcept;
+
         [[nodiscard]] vk::Format GetFormat() const noexcept;
         [[nodiscard]] vk::Extent2D GetExtent() const noexcept;
         [[nodiscard]] vk::Image GetImage(uint32_t index) const;
         [[nodiscard]] const vk::raii::ImageView& GetView(uint32_t index) const;
         [[nodiscard]] const vk::raii::Semaphore& GetRenderFinished(uint32_t index) const;
 
-        /** @brief Acquire the next image, signalling `imageAcquired`. On `Ok`, `outIndex` is that image. */
+        /**
+         * @brief Acquire the next image, signalling `imageAcquired`. On `Ok` or `Suboptimal`, `outIndex` is that
+         * image.
+         */
         [[nodiscard]] PresentStatus Acquire(const vk::raii::Semaphore& imageAcquired, uint32_t& outIndex);
 
         /** @brief Present an image once its "render finished" semaphore is signalled. */
         [[nodiscard]] PresentStatus Present(const vk::raii::Queue& queue, uint32_t index);
 
     private:
+        /**
+         * @brief Create the swapchain on the surface, handing over the current one, and log it.
+         *
+         * @return False, with nothing changed, when the surface has no area and `recreating` is set; without it, that
+         *         case throws `std::runtime_error`, as creation refuses a window with no area.
+         */
+        [[nodiscard]] bool Create(liara_extent2d_t windowSize, bool recreating);
+
+        const Device* m_Device;
+        const vk::raii::SurfaceKHR* m_Surface;
         vk::Format m_Format = vk::Format::eUndefined;
         vk::Extent2D m_Extent;
         vk::raii::SwapchainKHR m_Swapchain = nullptr;

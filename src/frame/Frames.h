@@ -34,8 +34,8 @@ namespace Liara::Renderer
     class Frames
     {
     public:
-        /** @param device, swapchain, meshes, pipeline All outlive this object; the pipeline matches the swapchain. */
-        Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes, const MeshPipeline& pipeline);
+        /** @param device, swapchain, meshes All outlive this object. */
+        Frames(const Device& device, Swapchain& swapchain, const Meshes& meshes);
         ~Frames() = default;
 
         Frames(const Frames&) = delete;
@@ -43,8 +43,13 @@ namespace Liara::Renderer
         Frames(Frames&&) = delete;
         Frames& operator=(Frames&&) = delete;
 
-        /** @brief Draw a checked packet's views into the next image and present it. */
-        [[nodiscard]] PresentStatus Draw(const liara_render_packet_t& packet);
+        /**
+         * @brief Draw a checked packet's views into the next image and present it, with a pipeline built for the
+         * swapchain's format.
+         *
+         * @return `Suboptimal` when the acquisition or the presentation was, though the image was presented.
+         */
+        [[nodiscard]] PresentStatus Draw(const liara_render_packet_t& packet, const MeshPipeline& pipeline);
 
     private:
         struct Frame
@@ -54,7 +59,10 @@ namespace Liara::Renderer
             vk::raii::Semaphore m_ImageAcquired;
         };
 
-        void Record(const Frame& frame, uint32_t imageIndex, const liara_render_packet_t& packet);
+        void Record(const Frame& frame,
+                    uint32_t imageIndex,
+                    const liara_render_packet_t& packet,
+                    const MeshPipeline& pipeline);
 
         const Device* m_Device;
         Swapchain* m_Swapchain;

@@ -35,8 +35,12 @@ namespace Liara::Renderer
 
         [[nodiscard]] const vk::raii::Pipeline& Get() const noexcept;
 
+        /** @brief The colour format it was built for. */
+        [[nodiscard]] vk::Format GetColorFormat() const noexcept;
+
     private:
         vk::raii::PipelineLayout m_Layout;
         vk::raii::Pipeline m_Pipeline;
+        vk::Format m_ColorFormat;
     };
 }  // namespace Liara::Renderer

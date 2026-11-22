@@ -161,7 +161,7 @@ namespace
             : m_Harness(&harness)
             , m_Format(format)
             , m_Pipeline(harness.m_Device, format)
-            , m_Pass(harness.m_Meshes, m_Pipeline)
+            , m_Pass(harness.m_Meshes)
             , m_Readback(harness.m_Allocator,
                          vk::DeviceSize {SIZE} * SIZE * 4,
                          vk::BufferUsageFlagBits::eTransferDst,
@@ -228,7 +228,7 @@ namespace
                                                        colour);
             command.pipelineBarrier2(vk::DependencyInfo({}, {}, {}, toAttachment));
 
-            m_Pass.Record(command, m_View, vk::Extent2D(SIZE, SIZE), IsSrgbFormat(m_Format), views);
+            m_Pass.Record(command, m_View, vk::Extent2D(SIZE, SIZE), IsSrgbFormat(m_Format), views, m_Pipeline);
 
             const vk::ImageMemoryBarrier2 toSource(Stage::eColorAttachmentOutput,
                                                    Access::eColorAttachmentWrite,

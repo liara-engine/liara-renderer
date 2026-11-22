@@ -29,8 +29,8 @@ namespace Liara::Renderer
     class ViewPass
     {
     public:
-        /** @param meshes, pipeline Both outlive this object, and the pipeline matches the images it records into. */
-        ViewPass(const Meshes& meshes, const MeshPipeline& pipeline);
+        /** @param meshes Outlives this object. */
+        explicit ViewPass(const Meshes& meshes);
 
         /**
          * @brief Record, into `target`, which is already in `COLOR_ATTACHMENT_OPTIMAL`: one rendering scope over the
@@ -40,18 +40,20 @@ namespace Liara::Renderer
          *
          * @param srgbTarget Whether the hardware encodes writes to the target to sRGB, which decides whether the
          *        packet's sRGB-encoded colours are decoded first.
+         * @param pipeline Built for the target's format. Passed on each call rather than kept, since the swapchain's
+         *        recreation may replace it.
          */
         void Record(const vk::raii::CommandBuffer& commands,
                     const vk::raii::ImageView& target,
                     vk::Extent2D extent,
                     bool srgbTarget,
-                    std::span<const liara_render_view_t> views);
+                    std::span<const liara_render_view_t> views,
+                    const MeshPipeline& pipeline);
 
     private:
         void Draw(const vk::raii::CommandBuffer& commands, const liara_render_drawable_t& drawable);
 
         const Meshes* m_Meshes;
-        const MeshPipeline* m_Pipeline;
         std::unordered_set<uint64_t> m_WarnedTargets;
         std::unordered_set<uint64_t> m_WarnedMeshes;
     };

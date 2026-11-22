@@ -48,6 +48,18 @@ namespace Liara::Renderer
             }
         }
 
+        /** @brief Add the extensions a headless surface needs, or throw Unsupported if one is missing. */
+        void AddHeadlessSurfaceExtensions(const vk::raii::Context& context, std::vector<const char*>& extensions) {
+            const auto available = context.enumerateInstanceExtensionProperties();
+            for (const char* name : {VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME}) {
+                if (!HasExtension(available, name)) {
+                    throw Unsupported(
+                        std::format("the Vulkan loader does not provide {}, needed for a headless surface", name));
+                }
+                extensions.push_back(name);
+            }
+        }
+
 // Everything up to CreateInstance exists for validation alone, which only debug builds use. Compiling it out of release
 // builds, rather than leaving it behind a discarded `if constexpr`, keeps unused-function warnings (clang's
 // -Wunneeded-internal-declaration, MSVC's C4505) from failing the release legs that build with warnings as errors.
@@ -102,10 +114,13 @@ namespace Liara::Renderer
         }
 #endif
 
-        vk::raii::Instance CreateInstance(const Loader& loader, const liara_native_window_kind_t windowKind) {
+        vk::raii::Instance CreateInstance(const Loader& loader,
+                                          const liara_native_window_kind_t windowKind,
+                                          const bool headlessSurface) {
             std::vector<const char*> layers;
             std::vector<const char*> extensions;
-            AddSurfaceExtensions(loader.GetContext(), windowKind, extensions);
+            if (headlessSurface) { AddHeadlessSurfaceExtensions(loader.GetContext(), extensions); }
+            else { AddSurfaceExtensions(loader.GetContext(), windowKind, extensions); }
 #ifdef LIARA_DEBUG
             RequireValidation(loader.GetContext());
             layers.push_back(VALIDATION_LAYER);
@@ -171,8 +186,8 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    Instance::Instance(const Loader& loader, const liara_native_window_kind_t windowKind)
-        : m_Instance(CreateInstance(loader, windowKind))
+    Instance::Instance(const Loader& loader, const liara_native_window_kind_t windowKind, const bool headlessSurface)
+        : m_Instance(CreateInstance(loader, windowKind, headlessSurface))
         , m_Messenger(CreateMessenger(m_Instance)) {}
 
     const vk::raii::Instance& Instance::Get() const noexcept { return m_Instance; }

@@ -41,15 +41,15 @@ namespace Liara::Renderer
         }
     }  // namespace
 
-    ViewPass::ViewPass(const Meshes& meshes, const MeshPipeline& pipeline)
-        : m_Meshes(&meshes)
-        , m_Pipeline(&pipeline) {}
+    ViewPass::ViewPass(const Meshes& meshes)
+        : m_Meshes(&meshes) {}
 
     void ViewPass::Record(const vk::raii::CommandBuffer& commands,
                           const vk::raii::ImageView& target,
                           const vk::Extent2D extent,
                           const bool srgbTarget,
-                          const std::span<const liara_render_view_t> views) {
+                          const std::span<const liara_render_view_t> views,
+                          const MeshPipeline& pipeline) {
         // Cleared to black first: the image arrives UNDEFINED, and whatever lies outside every view would be too.
         const vk::RenderingAttachmentInfo attachment(*target,
                                                      vk::ImageLayout::eColorAttachmentOptimal,
@@ -60,7 +60,7 @@ namespace Liara::Renderer
                                                      vk::AttachmentStoreOp::eStore,
                                                      vk::ClearValue(vk::ClearColorValue(OPAQUE_BLACK)));
         commands.beginRendering(vk::RenderingInfo({}, vk::Rect2D({0, 0}, extent), 1, 0, attachment));
-        commands.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_Pipeline->Get());
+        commands.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.Get());
 
         const liara_extent2d_t size {.width = extent.width, .height = extent.height};
         for (const liara_render_view_t& view : views) {

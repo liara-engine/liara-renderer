@@ -22,6 +22,11 @@ namespace Liara::Renderer
         liara_native_window_t m_Window {}; /**< Kind `LIARA_NATIVE_WINDOW_KIND_NONE`: no surface. */
         liara_extent2d_t m_PixelSize {};   /**< Meaningful only with a window. */
         std::string m_PreferredDeviceName; /**< Empty: no preference. */
+        /**
+         * A headless surface (`VK_EXT_headless_surface`) instead of none, with the kind `LIARA_NATIVE_WINDOW_KIND_NONE`
+         * only. Never set from a create-info: it exists for the tests of the presentation path, which have no window.
+         */
+        bool m_HeadlessSurface = false;
     };
 
     /** @brief True for the kinds this build can create a surface on: Xlib and Wayland on Linux, Win32 on Windows. */

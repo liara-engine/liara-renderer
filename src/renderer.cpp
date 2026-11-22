@@ -6,6 +6,7 @@
 #include "renderer/CreateInfo.h"
 
 #include <liara/abi_version.h>
+#include <liara/extent.h>
 #include <liara/mesh.h>
 #include <liara/modules.h>
 #include <liara/renderer/config.h>
@@ -114,4 +115,13 @@ liara_result_t liara_renderer_mesh_release(liara_renderer_handle_t* renderer, li
     catch (...) {
         return Liara::Renderer::ResultFromCurrentException();
     }
+}
+
+// NOLINTBEGIN(readability-identifier-naming)
+liara_result_t liara_renderer_window_resized(liara_renderer_handle_t* renderer, liara_extent2d_t pixel_size) {
+    // NOLINTEND(readability-identifier-naming)
+    if (renderer == nullptr) { return LIARA_RESULT_NULL_POINTER; }
+    // Only kept until the next frame, which is where the swapchain follows it: nothing here can fail or throw.
+    renderer->m_Impl.WindowResized(pixel_size);
+    return LIARA_RESULT_SUCCESS;
 }

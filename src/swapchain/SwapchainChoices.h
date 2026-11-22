@@ -3,9 +3,10 @@
 /**
  * @file SwapchainChoices.h
  *
- * What the swapchain is made of, chosen from what the surface reports, as pure functions over plain data. Querying the
- * surface and creating the swapchain belong to Swapchain.cpp, which is what lets these be tested without a GPU
- * (tests/test_renderer_swapchain_choices_cxx.cpp compiles SwapchainChoices.cpp on its own).
+ * What the swapchain is made of, chosen from what the surface reports, and whether the one that exists can stay, as
+ * pure functions over plain data. Querying the surface and creating the swapchain belong to Swapchain.cpp, which is
+ * what lets these be tested without a GPU (tests/test_renderer_swapchain_choices_cxx.cpp compiles SwapchainChoices.cpp
+ * on its own).
  */
 
 #include <liara/extent.h>
@@ -14,6 +15,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace Liara::Renderer
@@ -30,10 +32,29 @@ namespace Liara::Renderer
 
     /**
      * @brief The surface's own extent, or, when it has none (`currentExtent` of `0xFFFFFFFF`, as under Wayland), the
-     * window's pixel size clamped per axis to what the surface accepts. A zero extent is returned as is: the caller
-     * refuses it.
+     * window's pixel size clamped per axis to what the surface accepts, except that a zero component stays zero (the
+     * window has no area). A zero extent is returned as is: the caller refuses it.
      */
     [[nodiscard]] vk::Extent2D ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilities, liara_extent2d_t pixelSize);
+
+    /** @brief What to do with the swapchain before a frame. */
+    enum class SwapchainPlan : std::uint8_t
+    {
+        Keep,     /**< It matches the window: draw on it. */
+        Recreate, /**< It is missing, invalid, or of another extent: build a new one first. */
+        NoArea,   /**< The window has no area: there can be no swapchain, and nothing is presented. */
+    };
+
+    /**
+     * @brief Whether the swapchain can stay as it is.
+     *
+     * @param chosen  `ChooseExtent(capabilities, windowSize)`: the extent a swapchain would have now.
+     * @param current The current swapchain's extent, or nothing when it has no images.
+     * @param invalid Whether an acquisition or a presentation reported it out of date or suboptimal.
+     */
+    [[nodiscard]] SwapchainPlan PlanSwapchain(vk::Extent2D chosen,
+                                              std::optional<vk::Extent2D> current,
+                                              bool invalid) noexcept;
 
     /** @brief Opaque when supported, otherwise the lowest supported bit. */
     [[nodiscard]] vk::CompositeAlphaFlagBitsKHR ChooseCompositeAlpha(vk::CompositeAlphaFlagsKHR supported);
