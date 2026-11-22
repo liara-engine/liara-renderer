@@ -55,10 +55,12 @@ namespace Liara::Renderer
 
         /**
          * @brief Replace the swapchain with one chosen anew for a window of `windowSize` pixels, once the GPU is idle.
-         * The current one, if any, is handed over as `oldSwapchain`. Throws `std::runtime_error` when the surface has
-         * no area, which `Plan` reports first.
+         * The current one, if any, is handed over as `oldSwapchain`.
+         *
+         * @return False when the window has no area by then, though `Plan` saw one: it can lose it in between, as a
+         *         Win32 window minimised at that moment does. The swapchain is then released, as `Release` does.
          */
-        void Recreate(liara_extent2d_t windowSize);
+        [[nodiscard]] bool Recreate(liara_extent2d_t windowSize);
 
         /** @brief Drop the swapchain and everything per image, once the GPU is idle. */
         void Release();
@@ -82,8 +84,13 @@ namespace Liara::Renderer
         [[nodiscard]] PresentStatus Present(const vk::raii::Queue& queue, uint32_t index);
 
     private:
-        /** @brief Create the swapchain on the surface, handing over the current one, and log it. */
-        void Create(liara_extent2d_t windowSize, bool recreating);
+        /**
+         * @brief Create the swapchain on the surface, handing over the current one, and log it.
+         *
+         * @return False, with nothing changed, when the surface has no area and `recreating` is set; without it, that
+         *         case throws `std::runtime_error`, as creation refuses a window with no area.
+         */
+        [[nodiscard]] bool Create(liara_extent2d_t windowSize, bool recreating);
 
         const Device* m_Device;
         const vk::raii::SurfaceKHR* m_Surface;

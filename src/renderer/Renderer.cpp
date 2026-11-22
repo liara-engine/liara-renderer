@@ -34,6 +34,9 @@ namespace Liara::Renderer
 {
     namespace
     {
+        /** Said once each time the window loses its area and the swapchain goes. */
+        constexpr const char* NO_AREA = "window has no area; presentation paused";
+
         /** @brief The surface on the host's window, a headless one for the tests, or none. */
         std::unique_ptr<Surface> CreateSurface(const vk::raii::Instance& instance, const RendererConfig& config) {
             if (config.m_Window.kind != LIARA_NATIVE_WINDOW_KIND_NONE) {
@@ -95,7 +98,11 @@ namespace Liara::Renderer
         switch (m_Swapchain->Plan(m_WindowSize, m_SwapchainInvalid)) {
             case SwapchainPlan::Keep: m_CheckSwapchain = false; return true;
             case SwapchainPlan::Recreate:
-                m_Swapchain->Recreate(m_WindowSize);
+                if (const bool hadImages = m_Swapchain->HasImages(); !m_Swapchain->Recreate(m_WindowSize)) {
+                    // The window lost its area since the plan looked at it, and the swapchain is released: as below.
+                    if (hadImages) { Log::Info(NO_AREA); }
+                    return false;
+                }
                 // The same surface is expected to keep offering the same format; if it does not, the pipeline follows.
                 if (m_Swapchain->GetFormat() != m_Pipeline->GetColorFormat()) {
                     m_Pipeline = std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat());
@@ -107,7 +114,7 @@ namespace Liara::Renderer
                 // The flag stays set, so every frame looks again: a window may get its area back without an event.
                 if (m_Swapchain->HasImages()) {
                     m_Swapchain->Release();
-                    Log::Info("window has no area; presentation paused");
+                    Log::Info(NO_AREA);
                 }
                 return false;
         }

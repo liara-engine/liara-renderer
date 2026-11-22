@@ -2,9 +2,13 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "SinkCapture.h"
 
+#include "device/Device.h"
+#include "device/Instance.h"
 #include "device/Loader.h"
 #include "renderer/CreateInfo.h"
 #include "renderer/Renderer.h"
+#include "swapchain/Surface.h"
+#include "swapchain/Swapchain.h"
 
 #include <liara/extent.h>
 #include <liara/mesh.h>
@@ -41,9 +45,13 @@
 // Every case captures the sink to count the swapchain lines, so it checks the capture for warnings and errors itself:
 // what is captured never reaches CTest's failure expression.
 
+using Liara::Renderer::Device;
+using Liara::Renderer::Instance;
 using Liara::Renderer::Loader;
 using Liara::Renderer::Renderer;
 using Liara::Renderer::RendererConfig;
+using Liara::Renderer::Surface;
+using Liara::Renderer::Swapchain;
 
 namespace
 {
@@ -269,6 +277,38 @@ TEST_CASE("Resize - a renderer without a swapchain releases and shuts down clean
         paused = AllAre(SubmitFrames(renderer, 1), LIARA_RESULT_SURFACE_OUT_OF_DATE);
     });
     CHECK(paused);
+    CheckNoWarningOrError(written);
+}
+
+TEST_CASE("Resize - a recreation that finds no area pauses instead of failing") {
+    // The window can lose its area between the frame's look at the swapchain and the recreation that follows, as a
+    // Win32 window minimised at that moment does. The recreation then finds no area, which is no failure.
+    if (!HeadlessSurfaceOffered()) { return; }
+    bool threw = false;
+    bool recreated = true;
+    bool noImages = false;
+    std::string written;
+    {
+        const SinkCapture capture;
+        {
+            const Loader loader;
+            const Instance instance(loader, LIARA_NATIVE_WINDOW_KIND_NONE, true);
+            const Surface surface(instance.Get());
+            const Device device(instance.Get(), &surface.Get(), "");
+            Swapchain swapchain(device, surface.Get(), {.width = 64, .height = 64});
+            try {
+                recreated = swapchain.Recreate({.width = 0, .height = 0});
+            }
+            catch (const std::runtime_error&) {
+                threw = true;
+            }
+            noImages = !swapchain.HasImages();
+        }
+        written = capture.Written();
+    }
+    CHECK_FALSE(threw);
+    CHECK_FALSE(recreated);
+    CHECK(noImages);
     CheckNoWarningOrError(written);
 }
 

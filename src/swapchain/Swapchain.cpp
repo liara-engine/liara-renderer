@@ -20,7 +20,7 @@ namespace Liara::Renderer
     Swapchain::Swapchain(const Device& device, const vk::raii::SurfaceKHR& surface, const liara_extent2d_t pixelSize)
         : m_Device(&device)
         , m_Surface(&surface) {
-        Create(pixelSize, false);
+        (void)Create(pixelSize, false);  // Throws rather than returning false when not recreating.
     }
 
     SwapchainPlan Swapchain::Plan(const liara_extent2d_t windowSize, const bool invalid) const {
@@ -29,10 +29,12 @@ namespace Liara::Renderer
         return PlanSwapchain(ChooseExtent(capabilities, windowSize), current, invalid);
     }
 
-    void Swapchain::Recreate(const liara_extent2d_t windowSize) {
+    bool Swapchain::Recreate(const liara_extent2d_t windowSize) {
         // Idle first: every fence is then signalled and no semaphore of the old images is still awaited.
         m_Device->Get().waitIdle();
-        Create(windowSize, true);
+        if (Create(windowSize, true)) { return true; }
+        Release();
+        return false;
     }
 
     void Swapchain::Release() {
@@ -45,7 +47,7 @@ namespace Liara::Renderer
 
     bool Swapchain::HasImages() const noexcept { return !m_Images.empty(); }
 
-    void Swapchain::Create(const liara_extent2d_t windowSize, const bool recreating) {
+    bool Swapchain::Create(const liara_extent2d_t windowSize, const bool recreating) {
         const vk::raii::PhysicalDevice& physical = m_Device->GetPhysical();
         const vk::raii::SurfaceKHR& surface = *m_Surface;
         const vk::SurfaceCapabilitiesKHR capabilities = physical.getSurfaceCapabilitiesKHR(*surface);
@@ -54,6 +56,7 @@ namespace Liara::Renderer
         const vk::SurfaceFormatKHR format = ChooseSurfaceFormat(formats);
         const vk::Extent2D extent = ChooseExtent(capabilities, windowSize);
         if (extent.width == 0 || extent.height == 0) {
+            if (recreating) { return false; }
             throw std::runtime_error("the window has no area, so no swapchain can be created on it");
         }
 
@@ -106,6 +109,7 @@ namespace Liara::Renderer
                               vk::to_string(format.format),
                               vk::to_string(format.colorSpace),
                               vk::to_string(presentMode)));
+        return true;
     }
 
     vk::Format Swapchain::GetFormat() const noexcept { return m_Format; }
