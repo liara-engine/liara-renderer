@@ -15,6 +15,7 @@
 #include "swapchain/Surface.h"
 #include "swapchain/Swapchain.h"
 
+#include <liara/extent.h>
 #include <liara/mesh.h>
 #include <liara/native_window.h>
 #include <liara/renderer/packet.h>
@@ -42,7 +43,8 @@ namespace Liara::Renderer
         , m_Swapchain(m_Surface ? std::make_unique<Swapchain>(*m_Device, m_Surface->Get(), config.m_PixelSize)
                                 : nullptr)
         , m_Pipeline(m_Swapchain ? std::make_unique<MeshPipeline>(*m_Device, m_Swapchain->GetFormat()) : nullptr)
-        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr) {}
+        , m_Frames(m_Swapchain ? std::make_unique<Frames>(*m_Device, *m_Swapchain, *m_Meshes, *m_Pipeline) : nullptr)
+        , m_WindowSize(config.m_PixelSize) {}
 
     Renderer::~Renderer() {
         // Frames may still be in flight; nothing they use can go before the GPU is done with it.
@@ -68,6 +70,11 @@ namespace Liara::Renderer
     }
 
     liara_result_t Renderer::ReleaseMesh(const liara_mesh_id_t mesh) { return m_Meshes->Release(mesh); }
+
+    void Renderer::WindowResized(const liara_extent2d_t pixelSize) noexcept {
+        if (!m_Swapchain) { return; }
+        m_WindowSize = pixelSize;
+    }
 
     liara_result_t Renderer::SubmitFrame(const liara_render_packet_t& packet) {
         if (const liara_result_t checked = ValidatePacket(packet); checked != LIARA_RESULT_SUCCESS) { return checked; }

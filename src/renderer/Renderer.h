@@ -8,6 +8,7 @@
 
 #include "../swapchain/PresentStatus.h"
 
+#include <liara/extent.h>
 #include <liara/mesh.h>
 #include <liara/renderer/packet.h>
 #include <liara/result.h>
@@ -53,6 +54,13 @@ namespace Liara::Renderer
         /** @brief Free a mesh once the GPU is idle; see `Meshes::Release`. */
         [[nodiscard]] liara_result_t ReleaseMesh(liara_mesh_id_t mesh);
 
+        /**
+         * @brief Keep the window's size, in pixels, as the host reported it. A renderer without a window ignores it.
+         *
+         * It matters where the surface has no size of its own (Wayland): the swapchain's extent then comes from it.
+         */
+        void WindowResized(liara_extent2d_t pixelSize) noexcept;
+
     private:
         // Destroyed in reverse order, from the most derived Vulkan object to the loader.
         std::unique_ptr<Loader> m_Loader;
@@ -65,5 +73,6 @@ namespace Liara::Renderer
         std::unique_ptr<MeshPipeline> m_Pipeline; /**< Null for a renderer without a window. */
         std::unique_ptr<Frames> m_Frames;         /**< Null for a renderer without a window. */
         PresentStatus m_PresentStatus = PresentStatus::Ok;
+        liara_extent2d_t m_WindowSize {}; /**< The window's size, as the host last reported it. */
     };
 }  // namespace Liara::Renderer

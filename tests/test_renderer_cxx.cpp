@@ -174,4 +174,9 @@ TEST_CASE("liara_renderer_mesh_release - null renderer") {
     CHECK(liara_renderer_mesh_release(nullptr, 1) == LIARA_RESULT_NULL_POINTER);
 }
 
+TEST_CASE("liara_renderer_window_resized - null renderer") {
+    CHECK(liara_renderer_window_resized(nullptr, liara_extent2d_t {.width = 1, .height = 1})
+          == LIARA_RESULT_NULL_POINTER);
+}
+
 // NOLINTEND(readability-identifier-naming)
