@@ -7,6 +7,32 @@ sidebar:
 
 # Changelog
 
+## [0.2.0](https://github.com/liara-engine/liara-renderer/compare/v0.1.2...v0.2.0) (2026-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* liara_renderer_submit_frame takes version 2 packets of views, and the terminal rendering is gone.
+* liara_renderer_create takes a const liara_renderer_create_info_t* before its output parameter.
+* liara_renderer_destroy returns void instead of liara_result_t and takes a non-const liara_renderer_handle_t*. A caller that checked the return value no longer compiles.
+
+### Features
+
+* create a Vulkan instance and device ([#19](https://github.com/liara-engine/liara-renderer/issues/19)) ([4869bc8](https://github.com/liara-engine/liara-renderer/commit/4869bc8be3227c8c4f0a306a91ff79b119be22e5))
+* draw meshes from the packet's views, and drop the console renderer ([#21](https://github.com/liara-engine/liara-renderer/issues/21)) ([e95d2b2](https://github.com/liara-engine/liara-renderer/commit/e95d2b2c338d98aca4a34cdf2bfd81613c65ca44))
+* present to a window through a Vulkan swapchain ([#20](https://github.com/liara-engine/liara-renderer/issues/20)) ([dd71c0d](https://github.com/liara-engine/liara-renderer/commit/dd71c0d856e9c4070d3a6c10a37e1c2c5a72977c))
+* recreate the swapchain on resize and when it goes out of date ([#22](https://github.com/liara-engine/liara-renderer/issues/22)) ([bcd2e4a](https://github.com/liara-engine/liara-renderer/commit/bcd2e4a70b068177d882895236e79f804050aac1))
+
+
+### Bug Fixes
+
+* **ci:** update pull request triggers for CI workflow ([5b2733b](https://github.com/liara-engine/liara-renderer/commit/5b2733b66e156e0a94d1e5ef7dba3edf837c793c))
+
+
+### Code Refactoring
+
+* destroy returns void ([#17](https://github.com/liara-engine/liara-renderer/issues/17)) ([bc41f16](https://github.com/liara-engine/liara-renderer/commit/bc41f166d5ef6c3dd41d41e762bd72c25be812e0))
+
 ## [0.1.2](https://github.com/liara-engine/liara-renderer/compare/v0.1.1...v0.1.2) (2026-09-20)
 
 
