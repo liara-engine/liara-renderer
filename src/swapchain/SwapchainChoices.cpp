@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace Liara::Renderer
@@ -59,6 +60,14 @@ namespace Liara::Renderer
         if (capabilities.currentExtent.width != NO_SIZE_OF_ITS_OWN) { return capabilities.currentExtent; }
         return {std::clamp(pixelSize.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
                 std::clamp(pixelSize.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
+    }
+
+    SwapchainPlan PlanSwapchain(const vk::Extent2D chosen,
+                                const std::optional<vk::Extent2D> current,
+                                const bool invalid) noexcept {
+        if (chosen.width == 0 || chosen.height == 0) { return SwapchainPlan::NoArea; }
+        if (!current.has_value() || invalid || *current != chosen) { return SwapchainPlan::Recreate; }
+        return SwapchainPlan::Keep;
     }
 
     vk::CompositeAlphaFlagBitsKHR ChooseCompositeAlpha(const vk::CompositeAlphaFlagsKHR supported) {

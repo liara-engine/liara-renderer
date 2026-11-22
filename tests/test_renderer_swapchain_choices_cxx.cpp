@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 #include <doctest/doctest.h>
 
@@ -16,6 +17,8 @@ using Liara::Renderer::ChooseImageCount;
 using Liara::Renderer::ChooseSurfaceFormat;
 using Liara::Renderer::IsSrgbFormat;
 using Liara::Renderer::LinearColorFromArgb;
+using Liara::Renderer::PlanSwapchain;
+using Liara::Renderer::SwapchainPlan;
 
 namespace
 {
@@ -91,6 +94,28 @@ TEST_CASE("LinearColorFromArgb - decoded from sRGB for an sRGB format, as is oth
     const auto unorm = LinearColorFromArgb(0x000080FFU, false);
     CHECK(unorm.at(1) == doctest::Approx(128.0F / 255.0F));
     CHECK(unorm.at(3) == doctest::Approx(1.0F));
+}
+
+TEST_CASE("PlanSwapchain - a zero component is no area, whatever else is true") {
+    CHECK(PlanSwapchain({0, 600}, vk::Extent2D {800, 600}, false) == SwapchainPlan::NoArea);
+    CHECK(PlanSwapchain({800, 0}, std::nullopt, true) == SwapchainPlan::NoArea);
+    CHECK(PlanSwapchain({0, 0}, vk::Extent2D {800, 600}, true) == SwapchainPlan::NoArea);
+}
+
+TEST_CASE("PlanSwapchain - no swapchain is recreated") {
+    CHECK(PlanSwapchain({800, 600}, std::nullopt, false) == SwapchainPlan::Recreate);
+}
+
+TEST_CASE("PlanSwapchain - an invalid swapchain is recreated, even at the same extent") {
+    CHECK(PlanSwapchain({800, 600}, vk::Extent2D {800, 600}, true) == SwapchainPlan::Recreate);
+}
+
+TEST_CASE("PlanSwapchain - another extent is recreated") {
+    CHECK(PlanSwapchain({1024, 600}, vk::Extent2D {800, 600}, false) == SwapchainPlan::Recreate);
+}
+
+TEST_CASE("PlanSwapchain - the same extent, still valid, is kept") {
+    CHECK(PlanSwapchain({800, 600}, vk::Extent2D {800, 600}, false) == SwapchainPlan::Keep);
 }
 
 // NOLINTEND(readability-identifier-naming)
